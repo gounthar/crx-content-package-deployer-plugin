@@ -31,31 +31,31 @@ then be used in other components provided by this plugin.
 
 
 
-![CRX Content Package Choice Parameter Configuration](https://github.com/adamcin/crx-content-package-deployer/raw/master/src/site/resources/images/package-choice-parameter-config.png "CRX Content Package Choice Parameter Configuration")
+![CRX Content Package Choice Parameter Configuration](https://github.com/jenkinsci/crx-content-package-deployer-plugin/raw/master/src/site/resources/images/package-choice-parameter-config.png "CRX Content Package Choice Parameter Configuration")
 
 ### Build with Parameters
 
-![CRX Content Package Choice Parameter Build](https://github.com/adamcin/crx-content-package-deployer/raw/master/src/site/resources/images/package-choice-parameter.png "CRX Content Package Choice Parameter Build")
+![CRX Content Package Choice Parameter Build](https://github.com/jenkinsci/crx-content-package-deployer-plugin/raw/master/src/site/resources/images/package-choice-parameter.png "CRX Content Package Choice Parameter Build")
 
 ## Download Content Packages from CRX
 
 ### Configuration
 
-![Download Content Packages from CRX - Configuration](https://github.com/adamcin/crx-content-package-deployer/raw/master/src/site/resources/images/download-content-packages-config.png "Download Content Packages from CRX - Configuration")
+![Download Content Packages from CRX - Configuration](https://github.com/jenkinsci/crx-content-package-deployer-plugin/raw/master/src/site/resources/images/download-content-packages-config.png "Download Content Packages from CRX - Configuration")
 
 ### Console Output
 
-![Download Content Packages from CRX - Console Output](https://github.com/adamcin/crx-content-package-deployer/raw/master/src/site/resources/images/download-content-packages-console.png "Download Content Packages from CRX - Console Output")
+![Download Content Packages from CRX - Console Output](https://github.com/jenkinsci/crx-content-package-deployer-plugin/raw/master/src/site/resources/images/download-content-packages-console.png "Download Content Packages from CRX - Console Output")
 
 ## Deploy Content Packages to CRX
 
 ### Configuration
 
-![Deploy Content Packages to CRX - Configuration](https://github.com/adamcin/crx-content-package-deployer/raw/master/src/site/resources/images/deploy-content-packages-config.png "Deploy Content Packages to CRX - Configuration")
+![Deploy Content Packages to CRX - Configuration](https://github.com/jenkinsci/crx-content-package-deployer-plugin/raw/master/src/site/resources/images/deploy-content-packages-config.png "Deploy Content Packages to CRX - Configuration")
 
 ### Console Output
 
-![Deploy Content Packages to CRX - Console Output](https://github.com/adamcin/crx-content-package-deployer/raw/master/src/site/resources/images/deploy-content-packages-console.png "Deploy Content Packages to CRX - Console Output")
+![Deploy Content Packages to CRX - Console Output](https://github.com/jenkinsci/crx-content-package-deployer-plugin/raw/master/src/site/resources/images/deploy-content-packages-console.png "Deploy Content Packages to CRX - Console Output")
 
 
-[![Analytics](https://ga-beacon.appspot.com/UA-37073514-2/crx-content-package-deployer/blob/master/README.md)](https://github.com/igrigorik/ga-beacon)
+[![Analytics](https://ga-beacon.appspot.com/UA-37073514-2/jenkinsci/crx-content-package-deployer-plugin/blob/master/README.md)](https://github.com/igrigorik/ga-beacon)
