@@ -28,6 +28,7 @@
 package org.jenkinsci.plugins.graniteclient;
 
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
+
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
@@ -39,6 +40,8 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import net.adamcin.granite.client.packman.PackId;
+
+import org.jenkinsci.plugins.graniteclient.ReplicatePackagesCallable.Execution;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -50,27 +53,24 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Implementation of the "Download Content Packages from CRX" build step
+ * Implementation of the "Replicate Content Packages from CRX" build step
  */
-public class DownloadPackagesBuilder extends Builder {
+public class ReplicatePackagesBuilder extends Builder {
     private String packageIds;
-    private String baseUrl;
+    private String baseUrls;
     private String credentialsId;
     private long requestTimeout;
     private long serviceTimeout;
-    private String localDirectory;
     private boolean ignoreErrors;
 
     @DataBoundConstructor
-    public DownloadPackagesBuilder(String packageIds, String baseUrl, String credentialsId,
-                                   long requestTimeout, long serviceTimeout,
-                                   String localDirectory, boolean ignoreErrors) {
+    public ReplicatePackagesBuilder(String packageIds, String baseUrls, String credentialsId,
+                                   long requestTimeout, long serviceTimeout, boolean ignoreErrors) {
         this.packageIds = packageIds;
-        this.baseUrl = baseUrl;
+        this.baseUrls = baseUrls;
         this.credentialsId = credentialsId;
         this.requestTimeout = requestTimeout;
         this.serviceTimeout = serviceTimeout;
-        this.localDirectory = localDirectory;
         this.ignoreErrors = ignoreErrors;
     }
 
@@ -83,16 +83,29 @@ public class DownloadPackagesBuilder extends Builder {
             result = Result.SUCCESS;
         }
 
-        GraniteClientConfig clientConfig = new GraniteClientConfig(
-                getBaseUrl(build, listener), credentialsId, requestTimeout, serviceTimeout);
+		for (String baseUrl : listBaseUrls(build, listener)) {
+			if (result.isBetterOrEqualTo(Result.UNSTABLE)) {
+				GraniteClientConfig clientConfig = new GraniteClientConfig(
+						baseUrl, credentialsId, requestTimeout, serviceTimeout);
 
-        DownloadPackagesCallable callable = new DownloadPackagesCallable(clientConfig, listener,
-                                                                       listPackIds(build, listener),
-                                                                       ignoreErrors);
+				ReplicatePackagesClientCallable callable = new ReplicatePackagesClientCallable(
+						listener, listPackIds(build, listener), ignoreErrors);
 
-        final String fLocalDirectory = getLocalDirectory(build, listener);
-        result = result.combine(build.getWorkspace().child(fLocalDirectory).act(callable));
-
+				try {
+					result = result.combine(GraniteClientExecutor.execute(
+							callable, clientConfig, listener));
+				} catch (Exception e) {
+					e.printStackTrace(listener.fatalError(
+							"Failed to replicate packages.", e.getMessage()));
+					if (ignoreErrors) {
+						result = result.combine(Result.UNSTABLE);
+					} else {
+						result = result.combine(Result.FAILURE);
+					}
+				}
+			}
+		}
+        
         return result.isBetterOrEqualTo(Result.UNSTABLE);
     }
 
@@ -112,14 +125,42 @@ public class DownloadPackagesBuilder extends Builder {
             return getPackageIds();
         }
     }
-
-    private String getBaseUrl(AbstractBuild<?, ?> build, TaskListener listener) {
-        try {
-            return TokenMacro.expandAll(build, listener, getBaseUrl());
-        } catch (Exception e) {
-            listener.error("failed to expand tokens in: %s%n", getBaseUrl());
+    
+    public String getBaseUrls() {
+        //return baseUrls;
+        if (baseUrls != null) {
+            return baseUrls.trim();
+        } else {
+            return "";
         }
-        return getBaseUrl();
+    }
+
+    public void setBaseUrls(String baseUrls) {
+        this.baseUrls = baseUrls;
+    }
+    
+    private List<String> listBaseUrls(AbstractBuild<?, ?> build, TaskListener listener) {
+        try {
+            return parseBaseUrls(TokenMacro.expandAll(build, listener, getBaseUrls()));
+        } catch (Exception e) {
+            listener.error("failed to expand tokens in: %s%n", getBaseUrls());
+        }
+        return parseBaseUrls(getBaseUrls());
+    }
+
+
+    private List<String> listBaseUrls() {
+        return parseBaseUrls(getBaseUrls());
+    }
+
+    private static List<String> parseBaseUrls(String value) {
+         List<String> _baseUrls = new ArrayList<String>();
+        for (String url : value.split("(\\r)?\\n")) {
+            if (url.trim().length() > 0) {
+                _baseUrls.add(url);
+            }
+        }
+        return Collections.unmodifiableList(_baseUrls);
     }
 
     public String getCredentialsId() {
@@ -128,15 +169,6 @@ public class DownloadPackagesBuilder extends Builder {
 
     public void setCredentialsId(String credentialsId) {
         this.credentialsId = credentialsId;
-    }
-
-    private String getLocalDirectory(AbstractBuild<?, ?> build, TaskListener listener) {
-        try {
-            return TokenMacro.expandAll(build, listener, getLocalDirectory());
-        } catch (Exception e) {
-            listener.error("failed to expand tokens in: %s%n", getLocalDirectory());
-        }
-        return getLocalDirectory();
     }
 
     public List<PackId> listPackIds(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
@@ -152,14 +184,6 @@ public class DownloadPackagesBuilder extends Builder {
         return Collections.unmodifiableList(packIds);
     }
 
-    public String getBaseUrl() {
-        if (this.baseUrl != null) {
-            return this.baseUrl.trim();
-        } else {
-            return "";
-        }
-    }
-
     public long getRequestTimeout() {
         return requestTimeout;
     }
@@ -172,24 +196,8 @@ public class DownloadPackagesBuilder extends Builder {
         return ignoreErrors;
     }
 
-    public String getLocalDirectory() {
-        if (localDirectory == null || localDirectory.trim().isEmpty()) {
-            return ".";
-        } else {
-            return localDirectory;
-        }
-    }
-
-    public void setLocalDirectory(String localDirectory) {
-        this.localDirectory = localDirectory;
-    }
-
     public void setPackageIds(String packageIds) {
         this.packageIds = packageIds;
-    }
-
-    public void setBaseUrl(String baseUrl) {
-        this.baseUrl = baseUrl;
     }
 
     public void setIgnoreErrors(boolean ignoreErrors) {
@@ -212,26 +220,36 @@ public class DownloadPackagesBuilder extends Builder {
             return true;
         }
 
-        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@QueryParameter String baseUrl) {
-            return GraniteCredentialsListBoxModel.fillItems(baseUrl);
-        }
+        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@QueryParameter String baseUrls) {
+            List<String> _baseUrls = parseBaseUrls(baseUrls);
 
-        public FormValidation doCheckBaseUrl(@QueryParameter String value, @QueryParameter String credentialsId,
-                                             @QueryParameter long requestTimeout, @QueryParameter long serviceTimeout) {
-            try {
-                if (!GraniteClientExecutor.checkLogin(
-                        new GraniteClientConfig(value, credentialsId, requestTimeout, serviceTimeout))) {
-                    return FormValidation.error("Failed to login to " + value);
-                }
-                return FormValidation.ok();
-            } catch (IOException e) {
-                return FormValidation.error(e.getCause(), e.getMessage());
+            if (_baseUrls != null && !_baseUrls.isEmpty()) {
+                return GraniteCredentialsListBoxModel.fillItems(_baseUrls.iterator().next());
+            } else {
+                return GraniteCredentialsListBoxModel.fillItems();
             }
         }
 
+		public FormValidation doCheckBaseUrls(@QueryParameter String value,
+				@QueryParameter String credentialsId,
+				@QueryParameter long requestTimeout,
+				@QueryParameter long serviceTimeout) {
+			for (String baseUrl : parseBaseUrls(value)) {
+				try {
+					if (!GraniteClientExecutor.checkLogin(new GraniteClientConfig(baseUrl, credentialsId, requestTimeout,
+									serviceTimeout))) {
+						return FormValidation.error("Failed to login to " + baseUrl);
+					}
+				} catch (IOException e) {
+					return FormValidation.error(e.getCause(), e.getMessage());
+				}
+			}
+			return FormValidation.ok();
+		}
+
         @Override
         public String getDisplayName() {
-            return "Download Content Packages from CRX";
+            return "Replicate Content Packages from CRX";
         }
     }
 

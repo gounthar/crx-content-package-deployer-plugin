@@ -43,14 +43,14 @@ import java.io.IOException;
 /**
  * Implementation of {@link hudson.FilePath.FileCallable} used by the {@link DeployPackagesBuilder}
  */
-public final class PackageDeploymentCallable extends AbstractClientFileCallable<Result> {
+public final class DeployPackageCallable extends AbstractClientFileCallable<Result> {
 
-    private final PackId packId;
+	private final PackId packId;
     private final PackageInstallOptions options;
     private final ExistingPackageBehavior behavior;
     private final ResponseProgressListener progressListener;
 
-    public PackageDeploymentCallable(GraniteClientConfig clientConfig, TaskListener listener, PackId packId, PackageInstallOptions options, ExistingPackageBehavior behavior) {
+    public DeployPackageCallable(GraniteClientConfig clientConfig, TaskListener listener, PackId packId, PackageInstallOptions options, ExistingPackageBehavior behavior) {
         super(clientConfig, listener);
         this.progressListener = new JenkinsResponseProgressListener(this.listener);
         this.options = options;
@@ -70,7 +70,7 @@ public final class PackageDeploymentCallable extends AbstractClientFileCallable<
             client.waitForService();
             if (client.existsOnServer(packId)) {
                 listener.getLogger().println("Found existing package.");
-                if (!PackageDeploymentCallable.this.handleExisting(client, packId)) {
+                if (!DeployPackageCallable.this.handleExisting(client, packId)) {
                     return Result.FAILURE;
                 } else if (behavior == ExistingPackageBehavior.SKIP) {
                     listener.getLogger().println("Will skip package upload and return SUCCESS.");

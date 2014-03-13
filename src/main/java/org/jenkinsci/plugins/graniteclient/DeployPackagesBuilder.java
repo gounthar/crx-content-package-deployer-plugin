@@ -258,7 +258,7 @@ public class DeployPackagesBuilder extends Builder {
                         GraniteClientConfig clientConfig =
                                 new GraniteClientConfig(baseUrl, credentialsId, requestTimeout, serviceTimeout);
 
-                        callable = new PackageDeploymentCallable(
+                        callable = new DeployPackageCallable(
                                 clientConfig, listener,
                                 selectedPackage.getKey(), getPackageInstallOptions(), getExistingPackageBehavior());
                     }

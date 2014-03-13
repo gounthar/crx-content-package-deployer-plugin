@@ -41,12 +41,12 @@ import java.util.List;
 /**
  * Implementation of {@link hudson.FilePath.FileCallable} used by the {@link DownloadPackagesBuilder}
  */
-public class PackageDownloadCallable extends AbstractClientFileCallable<Result> {
+public class DownloadPackagesCallable extends AbstractClientFileCallable<Result> {
 
     private final List<PackId> packIds;
     private final boolean ignoreErrors;
 
-    public PackageDownloadCallable(GraniteClientConfig clientConfig, TaskListener listener,
+    public DownloadPackagesCallable(GraniteClientConfig clientConfig, TaskListener listener,
                                    List<PackId> packIds, boolean ignoreErrors) {
         super(clientConfig, listener);
         this.packIds = packIds;
