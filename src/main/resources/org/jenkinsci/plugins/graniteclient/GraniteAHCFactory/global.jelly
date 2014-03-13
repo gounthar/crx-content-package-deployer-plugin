@@ -44,19 +44,19 @@
             <f:textbox />
         </f:entry>
 
-        <f:entry title="Disable Base URL Validation" field="disableBaseUrlValidation">
+        <f:entry title="[Config Validation] Disable Base URL Validation" field="disableBaseUrlValidation">
             <f:checkbox />
         </f:entry>
 
-        <f:entry title="Connection Timeout in MS" field="connectionTimeoutInMsForValidation">
+        <f:entry title="[Config Validation] Connection Timeout in MS" field="connectionTimeoutInMsForValidation">
             <f:textbox />
         </f:entry>
 
-        <f:entry title="Request Timeout in MS" field="requestTimeoutInMsForValidation">
+        <f:entry title="[Config Validation] Request Timeout in MS" field="requestTimeoutInMsForValidation">
             <f:textbox />
         </f:entry>
 
-        <f:entry title="Idle Connection Timeout in MS" field="idleConnectionTimeoutInMsForValidation">
+        <f:entry title="[Config Validation] Idle Connection Timeout in MS" field="idleConnectionTimeoutInMsForValidation">
             <f:textbox />
         </f:entry>
 

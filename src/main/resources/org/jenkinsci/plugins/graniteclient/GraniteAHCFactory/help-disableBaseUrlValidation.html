@@ -26,6 +26,7 @@
   -->
 
 <div>
-    Specify a global timeout in milliseconds for connections used to validate Base URL configurations. By default this is 10000 (10 seconds). Specify a value of
-    0 to use the default
+    Disable the remote ping used to validate Base URL values in job configurations. Consider using this if the network
+    environment is causing your server processor usage to spike when the job config page is open. You may instead try
+    adjusting the validation-specific timeouts below (which have no effect at all if this box is checked, FYI).
 </div>
