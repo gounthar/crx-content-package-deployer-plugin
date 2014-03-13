@@ -93,12 +93,19 @@ public final class DeployPackageCallable extends AbstractClientFileCallable<Resu
                                                             progressListener);
                 if (r_install.isSuccess()) {
                     progressListener.onLog(r_upload.getMessage());
-                    if (r_install.hasErrors()) {
-                        //listener.getLogger().println("should be unstable");
-                        return Result.UNSTABLE;
-                    } else {
-                        return Result.SUCCESS;
+                    Result r = r_install.hasErrors() ? Result.UNSTABLE : Result.SUCCESS;
+                    if (options.isReplicate()) {
+                        progressListener.onLog("Will attempt to replicate package.");
+                        SimpleResponse r_replicate = client.replicate(packId);
+                        if (r_replicate.isSuccess()) {
+                            progressListener.onLog(r_replicate.getMessage());
+                        } else {
+                            r = r.combine(Result.FAILURE);
+                            listener.fatalError("Failed to replicate %s: %s%n", r_replicate.getPath(),
+                                    r_replicate.getMessage());
+                        }
                     }
+                    return r;
                 } else {
                     listener.fatalError("%s", r_install.getMessage());
                     return Result.FAILURE;

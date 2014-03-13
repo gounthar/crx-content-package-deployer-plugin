@@ -39,11 +39,13 @@ public class PackageInstallOptions implements Serializable {
     private final boolean recursive;
     private final int autosave;
     private final ACHandling acHandling;
+    private final boolean replicate;
 
-    public PackageInstallOptions(boolean recursive, int autosave, ACHandling acHandling) {
+    public PackageInstallOptions(boolean recursive, int autosave, ACHandling acHandling, boolean replicate) {
         this.recursive = recursive;
         this.autosave = autosave;
         this.acHandling = acHandling == null ? ACHandling.IGNORE : acHandling;
+        this.replicate = replicate;
     }
 
     public boolean isRecursive() {
@@ -56,5 +58,9 @@ public class PackageInstallOptions implements Serializable {
 
     public ACHandling getAcHandling() {
         return acHandling;
+    }
+
+    public boolean isReplicate() {
+        return replicate;
     }
 }

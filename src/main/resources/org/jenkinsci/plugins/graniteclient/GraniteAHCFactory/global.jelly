@@ -32,15 +32,31 @@
             <creds:select />
         </f:entry>
 
-        <f:entry title="Request Timeout in MS" field="requestTimeoutInMs">
-            <f:textbox />
-        </f:entry>
-
         <f:entry title="Connection Timeout in MS" field="connectionTimeoutInMs">
             <f:textbox />
         </f:entry>
 
+        <f:entry title="Request Timeout in MS" field="requestTimeoutInMs">
+            <f:textbox />
+        </f:entry>
+
         <f:entry title="Idle Connection Timeout in MS" field="idleConnectionTimeoutInMs">
+            <f:textbox />
+        </f:entry>
+
+        <f:entry title="Disable Base URL Validation" field="disableBaseUrlValidation">
+            <f:checkbox />
+        </f:entry>
+
+        <f:entry title="Connection Timeout in MS" field="connectionTimeoutInMsForValidation">
+            <f:textbox />
+        </f:entry>
+
+        <f:entry title="Request Timeout in MS" field="requestTimeoutInMsForValidation">
+            <f:textbox />
+        </f:entry>
+
+        <f:entry title="Idle Connection Timeout in MS" field="idleConnectionTimeoutInMsForValidation">
             <f:textbox />
         </f:entry>
 

@@ -74,6 +74,7 @@ public class DeployPackagesBuilder extends Builder {
     private String localDirectory;
     private String behavior;
     private boolean recursive;
+    private boolean replicate;
     private int autosave;
     private String acHandling;
     private boolean disableForJobTesting;
@@ -82,7 +83,7 @@ public class DeployPackagesBuilder extends Builder {
 
     @DataBoundConstructor
     public DeployPackagesBuilder(String packageIdFilters, String baseUrls, String credentialsId,
-                                 String localDirectory, String behavior, boolean recursive,
+                                 String localDirectory, String behavior, boolean recursive, boolean replicate,
                                  int autosave, String acHandling, boolean disableForJobTesting, long requestTimeout,
                                  long serviceTimeout) {
         this.packageIdFilters = packageIdFilters;
@@ -91,6 +92,7 @@ public class DeployPackagesBuilder extends Builder {
         this.localDirectory = localDirectory;
         this.behavior = behavior;
         this.recursive = recursive;
+        this.replicate = replicate;
         this.autosave = autosave;
         this.acHandling = acHandling;
         this.disableForJobTesting = disableForJobTesting;
@@ -150,6 +152,14 @@ public class DeployPackagesBuilder extends Builder {
 
     public void setBehavior(String behavior) {
         this.behavior = behavior;
+    }
+
+    public boolean isReplicate() {
+        return replicate;
+    }
+
+    public void setReplicate(boolean replicate) {
+        this.replicate = replicate;
     }
 
     public boolean isRecursive() {
@@ -212,7 +222,7 @@ public class DeployPackagesBuilder extends Builder {
             }
         }
 
-        return new PackageInstallOptions(isRecursive(), getAutosave(), _acHandling);
+        return new PackageInstallOptions(isRecursive(), getAutosave(), _acHandling, isReplicate());
     }
 
     public ExistingPackageBehavior getExistingPackageBehavior() {
@@ -445,7 +455,7 @@ public class DeployPackagesBuilder extends Builder {
                                               @QueryParameter long requestTimeout, @QueryParameter long serviceTimeout) {
             for (String baseUrl : parseBaseUrls(value)) {
                 try {
-                    if (!GraniteClientExecutor.checkLogin(
+                    if (!GraniteClientExecutor.validateBaseUrl(
                             new GraniteClientConfig(baseUrl, credentialsId, requestTimeout, serviceTimeout))) {
                         return FormValidation.error("Failed to login to " + baseUrl);
                     }

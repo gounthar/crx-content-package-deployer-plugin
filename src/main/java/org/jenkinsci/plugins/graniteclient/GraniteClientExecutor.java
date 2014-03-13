@@ -142,8 +142,11 @@ public final class GraniteClientExecutor {
         return client.login(username, password);
     }
 
-    public static boolean checkLogin(final GraniteClientConfig config) throws IOException {
-        final AsyncHttpClient asyncHttpClient = GraniteAHCFactory.getFactoryInstance().newInstance();
+    public static boolean validateBaseUrl(final GraniteClientConfig config) throws IOException {
+        if (GraniteAHCFactory.getFactoryInstance().isDisableBaseUrlValidation()) {
+            return true;
+        }
+        final AsyncHttpClient asyncHttpClient = GraniteAHCFactory.getFactoryInstance().newInstanceForValidation();
 
         AsyncPackageManagerClient client = new AsyncPackageManagerClient(asyncHttpClient);
 

@@ -219,7 +219,7 @@ public class DownloadPackagesBuilder extends Builder {
         public FormValidation doCheckBaseUrl(@QueryParameter String value, @QueryParameter String credentialsId,
                                              @QueryParameter long requestTimeout, @QueryParameter long serviceTimeout) {
             try {
-                if (!GraniteClientExecutor.checkLogin(
+                if (!GraniteClientExecutor.validateBaseUrl(
                         new GraniteClientConfig(value, credentialsId, requestTimeout, serviceTimeout))) {
                     return FormValidation.error("Failed to login to " + value);
                 }

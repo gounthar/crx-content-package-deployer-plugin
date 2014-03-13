@@ -46,12 +46,17 @@ import org.kohsuke.stapler.StaplerRequest;
 @Extension
 public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> implements Describable<GraniteAHCFactory> {
 
-    private static final AsyncHttpClientConfig DEFAULT_CONFIG = new AsyncHttpClientConfig.Builder().build();
+    private static final int DEFAULT_TIMEOUT = 60000;
+    private static final int DEFAULT_TIMEOUT_FOR_VALIDATION = 10000;
 
     private String credentialsId;
-    private int connectionTimeoutInMs = DEFAULT_CONFIG.getConnectionTimeoutInMs();
-    private int idleConnectionTimeoutInMs = DEFAULT_CONFIG.getIdleConnectionTimeoutInMs();
-    private int requestTimeoutInMs = DEFAULT_CONFIG.getRequestTimeoutInMs();
+    private int connectionTimeoutInMs = DEFAULT_TIMEOUT;
+    private int idleConnectionTimeoutInMs = DEFAULT_TIMEOUT;
+    private int requestTimeoutInMs = DEFAULT_TIMEOUT;
+    private boolean disableBaseUrlValidation;
+    private int connectionTimeoutInMsForValidation = DEFAULT_TIMEOUT_FOR_VALIDATION;
+    private int idleConnectionTimeoutInMsForValidation = DEFAULT_TIMEOUT_FOR_VALIDATION;
+    private int requestTimeoutInMsForValidation = DEFAULT_TIMEOUT_FOR_VALIDATION;
 
     public GraniteAHCFactory() {
         super(GraniteAHCFactory.class);
@@ -102,6 +107,38 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
         this.requestTimeoutInMs = requestTimeoutInMs;
     }
 
+    public boolean isDisableBaseUrlValidation() {
+        return disableBaseUrlValidation;
+    }
+
+    public void setDisableBaseUrlValidation(boolean disableBaseUrlValidation) {
+        this.disableBaseUrlValidation = disableBaseUrlValidation;
+    }
+
+    public int getConnectionTimeoutInMsForValidation() {
+        return connectionTimeoutInMsForValidation;
+    }
+
+    public void setConnectionTimeoutInMsForValidation(int connectionTimeoutInMsForValidation) {
+        this.connectionTimeoutInMsForValidation = connectionTimeoutInMsForValidation;
+    }
+
+    public int getIdleConnectionTimeoutInMsForValidation() {
+        return idleConnectionTimeoutInMsForValidation;
+    }
+
+    public void setIdleConnectionTimeoutInMsForValidation(int idleConnectionTimeoutInMsForValidation) {
+        this.idleConnectionTimeoutInMsForValidation = idleConnectionTimeoutInMsForValidation;
+    }
+
+    public int getRequestTimeoutInMsForValidation() {
+        return requestTimeoutInMsForValidation;
+    }
+
+    public void setRequestTimeoutInMsForValidation(int requestTimeoutInMsForValidation) {
+        this.requestTimeoutInMsForValidation = requestTimeoutInMsForValidation;
+    }
+
     @Override
     public String getDisplayName() {
         return "CRX Content Package Deployer - HTTP Client";
@@ -123,9 +160,29 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
         return new AsyncHttpClient(
                 new AsyncHttpClientConfig.Builder()
                         .setProxyServer(AHCUtils.getProxyServer())
-                        .setConnectionTimeoutInMs(this.connectionTimeoutInMs)
-                        .setIdleConnectionTimeoutInMs(this.idleConnectionTimeoutInMs)
-                        .setRequestTimeoutInMs(this.requestTimeoutInMs)
+                        .setConnectionTimeoutInMs(this.connectionTimeoutInMs > 0 ?
+                                this.connectionTimeoutInMs : DEFAULT_TIMEOUT)
+                        .setIdleConnectionTimeoutInMs(this.idleConnectionTimeoutInMs > 0 ?
+                                this.idleConnectionTimeoutInMs : DEFAULT_TIMEOUT)
+                        .setRequestTimeoutInMs(this.requestTimeoutInMs > 0 ?
+                                this.requestTimeoutInMs : DEFAULT_TIMEOUT)
+                        .build());
+    }
+
+    /**
+     * This variation of {@link #newInstance()} returns a client which uses the validation-specific timeout settings.
+     * @return
+     */
+    public AsyncHttpClient newInstanceForValidation() {
+        return new AsyncHttpClient(
+                new AsyncHttpClientConfig.Builder()
+                        .setProxyServer(AHCUtils.getProxyServer())
+                        .setConnectionTimeoutInMs(this.connectionTimeoutInMsForValidation > 0 ?
+                                this.connectionTimeoutInMsForValidation : DEFAULT_TIMEOUT_FOR_VALIDATION)
+                        .setIdleConnectionTimeoutInMs(this.idleConnectionTimeoutInMsForValidation > 0 ?
+                                this.idleConnectionTimeoutInMsForValidation : DEFAULT_TIMEOUT_FOR_VALIDATION)
+                        .setRequestTimeoutInMs(this.requestTimeoutInMsForValidation > 0 ?
+                                this.requestTimeoutInMsForValidation : DEFAULT_TIMEOUT_FOR_VALIDATION)
                         .build());
     }
 

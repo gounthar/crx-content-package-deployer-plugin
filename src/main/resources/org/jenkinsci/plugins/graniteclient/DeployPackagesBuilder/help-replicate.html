@@ -26,5 +26,9 @@
   -->
 
 <div>
-    Check this box to ignore errors during replication such that the build continues after completion of this step.
+    Check this box to replicate each package after installation. This will not be attempted if the package installation
+    fails, and only packages which have actually been installed by this step (rather than simply uploaded or
+    skipped) will be replicated. This happens asynchronously, so you won't really know if the replication was successful
+    or not unless you manually check your replication agent logs. For this reason, it might be better instead to deploy
+    to each replication target directly.
 </div>
