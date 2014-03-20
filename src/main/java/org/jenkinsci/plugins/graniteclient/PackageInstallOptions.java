@@ -36,6 +36,7 @@ import java.io.Serializable;
  */
 public class PackageInstallOptions implements Serializable {
 
+    private static final long serialVersionUID = -5538352798614493484L;
     private final boolean recursive;
     private final int autosave;
     private final ACHandling acHandling;

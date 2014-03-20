@@ -25,40 +25,10 @@
   ~ For more information, please refer to <http://unlicense.org/>
   -->
 
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:creds="/lib/credentials">
+<div>
+    Specify a list of package IDs to replicate from each specified Base URL. Each package ID string must occupy its own
+    line.
 
-    <f:entry title="Package ID" field="packageIds">
-        <f:expandableTextbox/>
-    </f:entry>
-
-    <f:entry title="Rebuild Packages" field="rebuild">
-        <f:checkbox />
-    </f:entry>
-
-    <f:entry title="Ignore Errors" field="ignoreErrors">
-        <f:checkbox />
-    </f:entry>
-
-    <f:entry title="Local Directory" field="localDirectory">
-        <f:textbox/>
-    </f:entry>
-
-    <f:advanced title="Connection Options">
-        <f:entry title="Base URL" field="baseUrl">
-            <f:textbox/>
-        </f:entry>
-
-        <f:entry title="Credentials" field="credentialsId">
-            <creds:select />
-        </f:entry>
-
-        <f:entry title="Request Timeout" field="requestTimeout">
-            <f:number default="0" />
-        </f:entry>
-
-        <f:entry title="Service Timeout" field="serviceTimeout">
-            <f:number default="0" />
-        </f:entry>
-    </f:advanced>
-
-</j:jelly>
+    A Package ID consists of the group, the name, and the version of a package, separated by
+    colons (':'), as in: "group:name:version". The version may be omitted.
+</div>

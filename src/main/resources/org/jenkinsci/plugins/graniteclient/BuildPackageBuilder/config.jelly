@@ -27,43 +27,29 @@
 
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:creds="/lib/credentials">
 
-    <f:entry title="Package ID" field="packageIdFilters">
+    <f:entry title="Package ID" field="packageId">
         <f:expandableTextbox/>
     </f:entry>
 
-    <f:advanced title="Package Installation Options">
-        <f:entry title="Existing package behavior" field="behavior">
-            <f:select />
-        </f:entry>
+    <f:entry title="Workspace Filter" field="wspFilter">
+        <f:textarea/>
+    </f:entry>
 
-        <f:entry title="Install sub-packages" field="recursive">
+    <f:advanced title="Download Options">
+
+        <f:entry title="Download after Build" field="download">
             <f:checkbox />
         </f:entry>
 
-        <f:entry title="Replicate on Install" field="replicate">
-            <f:checkbox />
+        <f:entry title="Local Directory" field="localDirectory">
+            <f:textbox/>
         </f:entry>
 
-        <f:entry title="Access Control Handling" field="acHandling">
-            <f:select />
-        </f:entry>
-
-        <f:entry title="Auto Save" field="autosave">
-            <f:number default="1024" />
-        </f:entry>
     </f:advanced>
 
-    <f:entry title="Local Directory" field="localDirectory">
-        <f:textbox/>
-    </f:entry>
-
-    <f:entry title="Disable for Job Testing" field="disableForJobTesting">
-        <f:checkbox />
-    </f:entry>
-
     <f:advanced title="Connection Options">
-        <f:entry title="Base URL" field="baseUrls">
-            <f:expandableTextbox />
+        <f:entry title="Base URL" field="baseUrl">
+            <f:textbox />
         </f:entry>
 
         <f:entry title="Credentials" field="credentialsId">
@@ -75,10 +61,6 @@
         </f:entry>
 
         <f:entry title="Service Timeout" field="serviceTimeout">
-            <f:number default="0" />
-        </f:entry>
-
-        <f:entry title="Wait Delay" field="waitDelay">
             <f:number default="0" />
         </f:entry>
     </f:advanced>

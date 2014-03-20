@@ -25,40 +25,6 @@
   ~ For more information, please refer to <http://unlicense.org/>
   -->
 
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:creds="/lib/credentials">
-
-    <f:entry title="Package ID" field="packageIds">
-        <f:expandableTextbox/>
-    </f:entry>
-
-    <f:entry title="Rebuild Packages" field="rebuild">
-        <f:checkbox />
-    </f:entry>
-
-    <f:entry title="Ignore Errors" field="ignoreErrors">
-        <f:checkbox />
-    </f:entry>
-
-    <f:entry title="Local Directory" field="localDirectory">
-        <f:textbox/>
-    </f:entry>
-
-    <f:advanced title="Connection Options">
-        <f:entry title="Base URL" field="baseUrl">
-            <f:textbox/>
-        </f:entry>
-
-        <f:entry title="Credentials" field="credentialsId">
-            <creds:select />
-        </f:entry>
-
-        <f:entry title="Request Timeout" field="requestTimeout">
-            <f:number default="0" />
-        </f:entry>
-
-        <f:entry title="Service Timeout" field="serviceTimeout">
-            <f:number default="0" />
-        </f:entry>
-    </f:advanced>
-
-</j:jelly>
+<div>
+    Check this box to rebuild each package before downloading it. If rebuilding a package fails, the job will fail, unless Ignore Errors is also checked. If there are errors during rebuild, but it is ultimately reported as successful, then the job will be marked as unstable and the download step will continue.
+</div>

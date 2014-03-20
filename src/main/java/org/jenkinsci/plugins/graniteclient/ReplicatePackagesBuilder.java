@@ -58,16 +58,19 @@ public class ReplicatePackagesBuilder extends Builder {
     private String credentialsId;
     private long requestTimeout;
     private long serviceTimeout;
+    private long waitDelay;
     private boolean ignoreErrors;
 
     @DataBoundConstructor
     public ReplicatePackagesBuilder(String packageIds, String baseUrls, String credentialsId,
-                                   long requestTimeout, long serviceTimeout, boolean ignoreErrors) {
+                                   long requestTimeout, long serviceTimeout, long waitDelay,
+                                   boolean ignoreErrors) {
         this.packageIds = packageIds;
         this.baseUrls = baseUrls;
         this.credentialsId = credentialsId;
         this.requestTimeout = requestTimeout;
         this.serviceTimeout = serviceTimeout;
+        this.waitDelay = waitDelay;
         this.ignoreErrors = ignoreErrors;
     }
 
@@ -83,7 +86,7 @@ public class ReplicatePackagesBuilder extends Builder {
 		for (String baseUrl : listBaseUrls(build, listener)) {
 			if (result.isBetterOrEqualTo(Result.UNSTABLE)) {
 				GraniteClientConfig clientConfig = new GraniteClientConfig(
-						baseUrl, credentialsId, requestTimeout, serviceTimeout);
+						baseUrl, credentialsId, requestTimeout, serviceTimeout, waitDelay);
 
 				ReplicatePackagesClientCallable callable = new ReplicatePackagesClientCallable(
 						listener, listPackIds(build, listener), ignoreErrors);
@@ -207,6 +210,14 @@ public class ReplicatePackagesBuilder extends Builder {
 
     public void setServiceTimeout(long serviceTimeout) {
         this.serviceTimeout = serviceTimeout;
+    }
+
+    public long getWaitDelay() {
+        return waitDelay;
+    }
+
+    public void setWaitDelay(long waitDelay) {
+        this.waitDelay = waitDelay;
     }
 
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.

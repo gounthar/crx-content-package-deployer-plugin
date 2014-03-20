@@ -27,12 +27,15 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import hudson.FilePath;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
+import net.adamcin.granite.client.packman.DetailedResponse;
 import net.adamcin.granite.client.packman.DownloadResponse;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.PackageManagerClient;
+import net.adamcin.granite.client.packman.ResponseProgressListener;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,16 +44,25 @@ import java.util.List;
 /**
  * Implementation of {@link hudson.FilePath.FileCallable} used by the {@link DownloadPackagesBuilder}
  */
-public class DownloadPackagesCallable extends AbstractClientFileCallable<Result> {
+public class DownloadPackagesCallable implements FilePath.FileCallable<Result> {
 
+    private static final long serialVersionUID = 5909791609148794746L;
+    protected final GraniteClientConfig clientConfig;
+    protected final TaskListener listener;
     private final List<PackId> packIds;
     private final boolean ignoreErrors;
+    private final boolean rebuild;
+    private final ResponseProgressListener progressListener;
 
     public DownloadPackagesCallable(GraniteClientConfig clientConfig, TaskListener listener,
-                                   List<PackId> packIds, boolean ignoreErrors) {
-        super(clientConfig, listener);
+                                   List<PackId> packIds, boolean ignoreErrors,
+                                   boolean rebuild) {
+        this.clientConfig = clientConfig;
+        this.listener = listener;
         this.packIds = packIds;
         this.ignoreErrors = ignoreErrors;
+        this.rebuild = rebuild;
+        this.progressListener = new JenkinsResponseProgressListener(listener);
     }
 
     private class Execution implements PackageManagerClientCallable<Result> {
@@ -62,6 +74,7 @@ public class DownloadPackagesCallable extends AbstractClientFileCallable<Result>
 
         public Result doExecute(PackageManagerClient client) throws Exception {
             Result result = Result.SUCCESS;
+
             for (PackId packId : packIds) {
                 client.waitForService();
                 listener.getLogger().printf(
@@ -69,6 +82,23 @@ public class DownloadPackagesCallable extends AbstractClientFileCallable<Result>
                 );
                 if (client.existsOnServer(packId)) {
                     listener.getLogger().printf("Found package: %s%n", client.getConsoleUiUrl(packId));
+                    if (rebuild) {
+                        listener.getLogger().printf("Rebuilding %s.%n", packId);
+                        DetailedResponse r_rebuild = client.build(packId, progressListener);
+                        if (!r_rebuild.isSuccess()) {
+                            listener.error(r_rebuild.getMessage());
+                            if (ignoreErrors) {
+                                result = result.combine(Result.UNSTABLE);
+                            } else {
+                                return Result.FAILURE;
+                            }
+
+                        } else {
+                            if (r_rebuild.hasErrors()) {
+                                result = result.combine(Result.UNSTABLE);
+                            }
+                        }
+                    }
                     listener.getLogger().printf("Downloading %s to %s%n", packId, toDirectory);
 
                     DownloadResponse response = client.downloadToDirectory(packId, toDirectory);

@@ -80,12 +80,13 @@ public class DeployPackagesBuilder extends Builder {
     private boolean disableForJobTesting;
     private long requestTimeout;
     private long serviceTimeout;
+    private long waitDelay;
 
     @DataBoundConstructor
     public DeployPackagesBuilder(String packageIdFilters, String baseUrls, String credentialsId,
                                  String localDirectory, String behavior, boolean recursive, boolean replicate,
                                  int autosave, String acHandling, boolean disableForJobTesting, long requestTimeout,
-                                 long serviceTimeout) {
+                                 long serviceTimeout, long waitDelay) {
         this.packageIdFilters = packageIdFilters;
         this.baseUrls = baseUrls;
         this.credentialsId = credentialsId;
@@ -98,6 +99,7 @@ public class DeployPackagesBuilder extends Builder {
         this.disableForJobTesting = disableForJobTesting;
         this.requestTimeout = requestTimeout;
         this.serviceTimeout = serviceTimeout;
+        this.waitDelay = waitDelay;
     }
 
     public String getPackageIdFilters() {
@@ -210,6 +212,14 @@ public class DeployPackagesBuilder extends Builder {
         this.serviceTimeout = serviceTimeout;
     }
 
+    public long getWaitDelay() {
+        return waitDelay;
+    }
+
+    public void setWaitDelay(long waitDelay) {
+        this.waitDelay = waitDelay;
+    }
+
     public PackageInstallOptions getPackageInstallOptions() {
         ACHandling _acHandling = ACHandling.IGNORE;
         if (getAcHandling() != null) {
@@ -266,7 +276,7 @@ public class DeployPackagesBuilder extends Builder {
                         callable = new DebugPackageCallable(selectedPackage.getKey(), listener);
                     } else {
                         GraniteClientConfig clientConfig =
-                                new GraniteClientConfig(baseUrl, credentialsId, requestTimeout, serviceTimeout);
+                                new GraniteClientConfig(baseUrl, credentialsId, requestTimeout, serviceTimeout, waitDelay);
 
                         callable = new DeployPackageCallable(
                                 clientConfig, listener,

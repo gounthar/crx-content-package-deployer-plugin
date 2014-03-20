@@ -37,19 +37,29 @@ import java.io.Serializable;
  */
 public final class GraniteClientConfig implements Serializable {
 
-    private static final long serialVersionUID = 5044980450351873759L;
+    private static final long serialVersionUID = 2713710297119924270L;
 
     private final String baseUrl;
     private final String credentialsId;
     private final long requestTimeout;
     private final long serviceTimeout;
+    private final long waitDelay;
     private final Credentials credentials;
 
+    public GraniteClientConfig(String baseUrl, String credentialsId) {
+        this(baseUrl, credentialsId, 0L, 0L, 0L);
+    }
+
     public GraniteClientConfig(String baseUrl, String credentialsId, long requestTimeout, long serviceTimeout) {
+        this(baseUrl, credentialsId, requestTimeout, serviceTimeout, 0L);
+    }
+
+    public GraniteClientConfig(String baseUrl, String credentialsId, long requestTimeout, long serviceTimeout, long waitDelay) {
         this.baseUrl = baseUrl;
         this.credentialsId = credentialsId;
         this.requestTimeout = requestTimeout > 0L ? requestTimeout : -1L;
         this.serviceTimeout = serviceTimeout > 0L ? serviceTimeout : -1L;
+        this.waitDelay = waitDelay > 0L ? waitDelay : -1L;
         this.credentials = GraniteNamedIdCredentials.getCredentialsById(credentialsId);
     }
 
@@ -71,6 +81,10 @@ public final class GraniteClientConfig implements Serializable {
 
     public long getServiceTimeout() {
         return serviceTimeout;
+    }
+
+    public long getWaitDelay() {
+        return waitDelay;
     }
 
     public Credentials getCredentials() {

@@ -27,6 +27,7 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import hudson.FilePath;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
@@ -43,15 +44,19 @@ import java.io.IOException;
 /**
  * Implementation of {@link hudson.FilePath.FileCallable} used by the {@link DeployPackagesBuilder}
  */
-public final class DeployPackageCallable extends AbstractClientFileCallable<Result> {
+public final class DeployPackageCallable implements FilePath.FileCallable<Result> {
 
-	private final PackId packId;
+    private static final long serialVersionUID = -3235879975250741115L;
+    private final GraniteClientConfig clientConfig;
+    private final TaskListener listener;
+    private final PackId packId;
     private final PackageInstallOptions options;
     private final ExistingPackageBehavior behavior;
     private final ResponseProgressListener progressListener;
 
     public DeployPackageCallable(GraniteClientConfig clientConfig, TaskListener listener, PackId packId, PackageInstallOptions options, ExistingPackageBehavior behavior) {
-        super(clientConfig, listener);
+        this.clientConfig = clientConfig;
+        this.listener = listener;
         this.progressListener = new JenkinsResponseProgressListener(this.listener);
         this.options = options;
         this.behavior = behavior;

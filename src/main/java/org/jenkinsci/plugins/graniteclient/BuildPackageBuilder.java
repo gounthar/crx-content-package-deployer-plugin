@@ -39,6 +39,7 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import net.adamcin.granite.client.packman.PackId;
+import net.adamcin.granite.client.packman.WspFilter;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -50,33 +51,32 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Implementation of the "Download Content Packages from CRX" build step
+ * Implementation of the "Build a Content Package on CRX" build step
  */
-public class DownloadPackagesBuilder extends Builder {
-    private String packageIds;
+public class BuildPackageBuilder extends Builder {
+    private String packageId;
     private String baseUrl;
     private String credentialsId;
     private long requestTimeout;
     private long serviceTimeout;
     private long waitDelay;
+    private String wspFilter;
     private String localDirectory;
-    private boolean ignoreErrors;
-    private boolean rebuild;
+    private boolean download;
 
     @DataBoundConstructor
-    public DownloadPackagesBuilder(String packageIds, String baseUrl, String credentialsId,
-                                   long requestTimeout, long serviceTimeout, long waitDelay,
-                                   String localDirectory, boolean ignoreErrors,
-                                   boolean rebuild) {
-        this.packageIds = packageIds;
+    public BuildPackageBuilder(String packageId, String baseUrl, String credentialsId,
+                               long requestTimeout, long serviceTimeout, long waitDelay,
+                               String wspFilter, String localDirectory, boolean download) {
+        this.packageId = packageId;
         this.baseUrl = baseUrl;
         this.credentialsId = credentialsId;
         this.requestTimeout = requestTimeout;
         this.serviceTimeout = serviceTimeout;
         this.waitDelay = waitDelay;
+        this.wspFilter = wspFilter;
         this.localDirectory = localDirectory;
-        this.ignoreErrors = ignoreErrors;
-        this.rebuild = rebuild;
+        this.download = download;
     }
 
     @Override
@@ -88,12 +88,21 @@ public class DownloadPackagesBuilder extends Builder {
             result = Result.SUCCESS;
         }
 
+        String packIdString = getPackageId(build, listener);
+        PackId packId = PackId.parsePid(packIdString);
+        if (packId == null) {
+            listener.fatalError("Failed to parse Package ID: %s%n", packIdString);
+            return false;
+        }
+
+        String wspFilterString = getWspFilter(build, listener);
+        WspFilter filter = WspFilter.parseSimpleSpec(wspFilterString);
+
         GraniteClientConfig clientConfig = new GraniteClientConfig(
                 getBaseUrl(build, listener), credentialsId, requestTimeout, serviceTimeout, waitDelay);
 
-        DownloadPackagesCallable callable = new DownloadPackagesCallable(clientConfig, listener,
-                                                                       listPackIds(build, listener),
-                                                                       ignoreErrors, rebuild);
+        BuildPackageCallable callable =
+                new BuildPackageCallable(clientConfig, listener, packId, filter, download);
 
         final String fLocalDirectory = getLocalDirectory(build, listener);
         result = result.combine(build.getWorkspace().child(fLocalDirectory).act(callable));
@@ -101,20 +110,20 @@ public class DownloadPackagesBuilder extends Builder {
         return result.isBetterOrEqualTo(Result.UNSTABLE);
     }
 
-    public String getPackageIds() {
-        if (this.packageIds != null) {
-            return this.packageIds.trim();
+    public String getPackageId() {
+        if (this.packageId != null) {
+            return this.packageId.trim();
         } else {
             return "";
         }
     }
 
-    public String getPackageIds(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
+    public String getPackageId(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
         try {
-            return TokenMacro.expandAll(build, listener, getPackageIds());
+            return TokenMacro.expandAll(build, listener, getPackageId());
         } catch (MacroEvaluationException e) {
-            listener.error("Failed to expand macros in Package ID: %s", getPackageIds());
-            return getPackageIds();
+            listener.error("Failed to expand macros in Package ID: %s", getPackageId());
+            return getPackageId();
         }
     }
 
@@ -144,17 +153,13 @@ public class DownloadPackagesBuilder extends Builder {
         return getLocalDirectory();
     }
 
-    public List<PackId> listPackIds(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
-        List<PackId> packIds = new ArrayList<PackId>();
-
-        for (String packageId : getPackageIds(build, listener).split("\\r?\\n")) {
-            PackId packId = PackId.parsePid(packageId);
-            if (packId != null) {
-                packIds.add(packId);
-            }
+    private String getWspFilter(AbstractBuild<?, ?> build, TaskListener listener) {
+        try {
+            return TokenMacro.expandAll(build, listener, getWspFilter());
+        } catch (Exception e) {
+            listener.error("failed to expand tokens in: %s%n", getWspFilter());
         }
-
-        return Collections.unmodifiableList(packIds);
+        return getWspFilter();
     }
 
     public String getBaseUrl() {
@@ -181,12 +186,12 @@ public class DownloadPackagesBuilder extends Builder {
         this.waitDelay = waitDelay;
     }
 
-    public boolean isIgnoreErrors() {
-        return ignoreErrors;
+    public String getWspFilter() {
+        return wspFilter;
     }
 
-    public boolean isRebuild() {
-        return rebuild;
+    public boolean isDownload() {
+        return download;
     }
 
     public String getLocalDirectory() {
@@ -201,20 +206,20 @@ public class DownloadPackagesBuilder extends Builder {
         this.localDirectory = localDirectory;
     }
 
-    public void setPackageIds(String packageIds) {
-        this.packageIds = packageIds;
+    public void setPackageId(String packageId) {
+        this.packageId = packageId;
     }
 
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
     }
 
-    public void setIgnoreErrors(boolean ignoreErrors) {
-        this.ignoreErrors = ignoreErrors;
+    public void setWspFilter(String wspFilter) {
+        this.wspFilter = wspFilter;
     }
 
-    public void setRebuild(boolean rebuild) {
-        this.rebuild = rebuild;
+    public void setDownload(boolean download) {
+        this.download = download;
     }
 
     public void setRequestTimeout(long requestTimeout) {
@@ -250,9 +255,18 @@ public class DownloadPackagesBuilder extends Builder {
             }
         }
 
+        public FormValidation doCheckWspFilter(@QueryParameter String value) {
+            try {
+                WspFilter.parseSimpleSpec(value);
+                return FormValidation.ok();
+            } catch (RuntimeException e) {
+                return FormValidation.error(e.getMessage());
+            }
+        }
+
         @Override
         public String getDisplayName() {
-            return "Download Content Packages from CRX";
+            return "Build a Content Package on CRX";
         }
     }
 

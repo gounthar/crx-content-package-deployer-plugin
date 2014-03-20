@@ -68,6 +68,12 @@
     <licenses>
         <license>
             <name>Public Domain (Unlicense)</name>
+            <distribution>repo</distribution>
+            <url>http://unlicense.org/UNLICENSE</url>
+            <comments>
+                This plugin's source is released under the UNLICENSE. Binary dependencies
+                which are embedded within the release build artifacts may be licensed differently.
+            </comments>
         </license>
     </licenses>
 
@@ -101,7 +107,7 @@
         <dependency>
             <groupId>net.adamcin.granite</groupId>
             <artifactId>granite-client-packman</artifactId>
-            <version>0.6.6</version>
+            <version>0.6.7-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>net.adamcin.httpsig</groupId>

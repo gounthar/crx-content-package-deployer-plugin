@@ -3,14 +3,16 @@ package org.jenkinsci.plugins.graniteclient;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 
+import java.io.Serializable;
 import java.util.List;
 
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.PackageManagerClient;
 import net.adamcin.granite.client.packman.SimpleResponse;
 
-public class ReplicatePackagesClientCallable implements PackageManagerClientCallable<Result> {
+public class ReplicatePackagesClientCallable implements PackageManagerClientCallable<Result>, Serializable {
 
+    private static final long serialVersionUID = -3352654487234220595L;
     private final TaskListener listener;
     private final List<PackId> packIds;
     private final boolean ignoreErrors;

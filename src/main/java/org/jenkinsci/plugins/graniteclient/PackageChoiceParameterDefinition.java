@@ -55,6 +55,8 @@ import java.util.List;
  */
 public class PackageChoiceParameterDefinition extends ParameterDefinition {
 
+    private static final long serialVersionUID = 2160382112619250912L;
+
     @Extension
     public static class DescriptorImpl extends ParameterDescriptor {
 

@@ -35,6 +35,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public class PackageChoiceParameterValue extends StringParameterValue {
 
+    private static final long serialVersionUID = 6946660866066688039L;
+
     @DataBoundConstructor
     public PackageChoiceParameterValue(String name, String value) {
         super(name, value);

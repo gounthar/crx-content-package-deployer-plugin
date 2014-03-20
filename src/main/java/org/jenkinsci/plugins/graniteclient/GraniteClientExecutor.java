@@ -82,6 +82,7 @@ public final class GraniteClientExecutor {
         client.setBaseUrl(config.getBaseUrl());
         client.setRequestTimeout(config.getRequestTimeout());
         client.setServiceTimeout(config.getServiceTimeout());
+        client.setWaitDelay(config.getWaitDelay());
 
         try {
             if (doLogin(client, config.getCredentials(), listener)) {
@@ -153,6 +154,7 @@ public final class GraniteClientExecutor {
         client.setBaseUrl(config.getBaseUrl());
         client.setRequestTimeout(config.getRequestTimeout());
         client.setServiceTimeout(config.getServiceTimeout());
+        client.setWaitDelay(config.getWaitDelay());
 
         try {
             return doLogin(client, config.getCredentials(), DEFAULT_LISTENER);
