@@ -109,7 +109,7 @@
         <dependency>
             <groupId>net.adamcin.granite</groupId>
             <artifactId>granite-client-packman</artifactId>
-            <version>0.6.9-SNAPSHOT</version>
+            <version>0.7.0</version>
         </dependency>
         <dependency>
             <groupId>net.adamcin.httpsig</groupId>
