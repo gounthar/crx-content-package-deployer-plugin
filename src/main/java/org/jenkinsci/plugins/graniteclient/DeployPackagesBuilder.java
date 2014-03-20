@@ -334,10 +334,11 @@ public class DeployPackagesBuilder extends Builder {
         }
 
         Map<PackId, FilePath> selected = new LinkedHashMap<PackId, FilePath>();
-        for (Map.Entry<String, PackIdFilter> filterEntry : listPackageFilters(build, listener).entrySet()) {
+        for (Map.Entry<String, PathOrPackIdFilter> filterEntry : listPackageFilters(build, listener).entrySet()) {
             boolean matched = false;
             for (Map.Entry<PackId, FilePath> entry : found.entrySet()) {
-                if (filterEntry.getValue().includes(entry.getKey())) {
+                if (filterEntry.getValue().includes(entry.getKey()) ||
+                        filterEntry.getValue().includes(dir, entry.getValue())) {
                     matched = true;
 
                     if (!selected.containsKey(entry.getKey())) {
@@ -375,12 +376,12 @@ public class DeployPackagesBuilder extends Builder {
         return TokenMacro.expandAll(build, listener, getPackageIdFilters());
     }
 
-    private Map<String, PackIdFilter> listPackageFilters(AbstractBuild<?, ?> build, TaskListener listener) {
-        Map<String, PackIdFilter> filters = new LinkedHashMap<String, PackIdFilter>();
+    private Map<String, PathOrPackIdFilter> listPackageFilters(AbstractBuild<?, ?> build, TaskListener listener) {
+        Map<String, PathOrPackIdFilter> filters = new LinkedHashMap<String, PathOrPackIdFilter>();
         try {
             for (String filter : getPackageIdFilters(build, listener).split("(\\r)?\\n")) {
                 if (filter.trim().length() > 0) {
-                    filters.put(filter, DefaultPackIdFilter.parse(filter));
+                    filters.put(filter, PathOrPackIdFilter.parse(filter));
                 }
             }
         } catch (Exception e) {

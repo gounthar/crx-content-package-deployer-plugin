@@ -101,13 +101,15 @@
         -->
         <maven-hpi-plugin.version>1.95</maven-hpi-plugin.version>
         <httpsig.version>1.0.4</httpsig.version>
+        <slf4j.version>1.6.2</slf4j.version>
+        <junit.version>4.10</junit.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>net.adamcin.granite</groupId>
             <artifactId>granite-client-packman</artifactId>
-            <version>0.6.8</version>
+            <version>0.6.9-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>net.adamcin.httpsig</groupId>
@@ -162,5 +164,25 @@
             <artifactId>json</artifactId>
             <version>20080701</version>
         </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.adamcin.commons</groupId>
+            <artifactId>net.adamcin.commons.testing</artifactId>
+            <version>0.8.0</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 </project>

@@ -27,7 +27,6 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
-import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -40,30 +39,22 @@ import hudson.remoting.VirtualChannel;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
-import hudson.util.ListBoxModel;
-import net.adamcin.granite.client.packman.ACHandling;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.PackIdFilter;
 import net.adamcin.granite.client.packman.WspFilter;
 import net.adamcin.granite.client.packman.validation.DefaultValidationOptions;
-import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Implementation of the "Validate CRX Content Packages" build step
@@ -179,10 +170,7 @@ public class ValidatePackagesBuilder extends Builder {
 
         DefaultValidationOptions options = getValidationOptions(build, listener);
         for (PackTuple selectedPackage : selectPackages(build, listener)) {
-            if (!result.isBetterOrEqualTo(Result.UNSTABLE)) {
-                return false;
-            }
-            listener.getLogger().printf("Validating package %s at path %s%n.",
+            listener.getLogger().printf("Validating package %s at path %s.%n",
                     selectedPackage.getPackId(), selectedPackage.getFilePath());
 
             FilePath.FileCallable<Result> callable =
@@ -198,10 +186,12 @@ public class ValidatePackagesBuilder extends Builder {
     static class PackTuple {
         final PackId packId;
         final FilePath filePath;
+        final boolean pathOnly;
 
         PackTuple(PackId packId, FilePath filePath) {
             this.packId = packId;
             this.filePath = filePath;
+            this.pathOnly = this.packId == null;
         }
 
         public PackId getPackId() {
@@ -210,6 +200,10 @@ public class ValidatePackagesBuilder extends Builder {
 
         public FilePath getFilePath() {
             return filePath;
+        }
+
+        public boolean isPathOnly() {
+            return pathOnly;
         }
     }
 
@@ -225,25 +219,31 @@ public class ValidatePackagesBuilder extends Builder {
             listed.addAll(Arrays.asList(dir.list("**/*.zip")));
 
             for (FilePath path : listed) {
-                PackId packId = path.act(new FilePath.FileCallable<PackId>() {
-                    public PackId invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
-                        return PackId.identifyPackage(f);
-                    }
-                });
-
-                if (packId != null) {
-                    found.add(new PackTuple(packId, path));
+                PackId packId = null;
+                try {
+                    packId = path.act(new FilePath.FileCallable<PackId>() {
+                        public PackId invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
+                            return PackId.identifyPackage(f);
+                        }
+                    });
+                } catch (Exception e) {
+                    listener.error("Failed to identify package file: %s", e.getMessage());
                 }
+                found.add(new PackTuple(packId, path));
             }
         } catch (Exception e) {
             listener.error("Failed to list package files: %s", e.getMessage());
         }
 
         List<PackTuple> selected = new ArrayList<PackTuple>();
-        for (Map.Entry<String, PackIdFilter> filterEntry : listPackageFilters(build, listener).entrySet()) {
+        for (Map.Entry<String, PathOrPackIdFilter> filterEntry : listPackageFilters(build, listener).entrySet()) {
             boolean matched = false;
             for (PackTuple entry : found) {
-                if (filterEntry.getValue().includes(entry.getPackId())) {
+                if (!entry.isPathOnly() &&
+                        filterEntry.getValue().includes(entry.getPackId())) {
+                    matched = true;
+                    selected.add(entry);
+                } else if (filterEntry.getValue().includes(dir, entry.getFilePath())) {
                     matched = true;
                     selected.add(entry);
                 }
@@ -261,12 +261,12 @@ public class ValidatePackagesBuilder extends Builder {
         return TokenMacro.expandAll(build, listener, getPackageIdFilters());
     }
 
-    private Map<String, PackIdFilter> listPackageFilters(AbstractBuild<?, ?> build, TaskListener listener) {
-        Map<String, PackIdFilter> filters = new LinkedHashMap<String, PackIdFilter>();
+    private Map<String, PathOrPackIdFilter> listPackageFilters(AbstractBuild<?, ?> build, TaskListener listener) {
+        Map<String, PathOrPackIdFilter> filters = new LinkedHashMap<String, PathOrPackIdFilter>();
         try {
             for (String filter : getPackageIdFilters(build, listener).split("(\\r)?\\n")) {
                 if (filter.trim().length() > 0) {
-                    filters.put(filter, DefaultPackIdFilter.parse(filter));
+                    filters.put(filter, PathOrPackIdFilter.parse(filter));
                 }
             }
         } catch (Exception e) {
