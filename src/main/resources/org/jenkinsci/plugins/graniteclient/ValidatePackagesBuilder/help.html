@@ -26,10 +26,6 @@
   -->
 
 <div>
-    List of file extensions to scan the package for (as a jar file), one per line. For example, specify the following to ensure that embedded jar files and package files are not included in the package even if the workspace filter does not cover the paths from where they could be theoretically installed:
-
-    <pre>
-        .jar
-        .zip
-    </pre>
+    Validate that content packages in the workspace conform to restrictions on the scope of
+    their WorkspaceFilter and on the types of embedded files. Use this to enforce security policies to prevent developers from deploying content or code through continuous integration.
 </div>
