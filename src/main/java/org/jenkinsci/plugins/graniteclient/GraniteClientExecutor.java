@@ -33,7 +33,6 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.ning.http.client.AsyncCompletionHandler;
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.Response;
-import com.ning.http.client.SignatureCalculator;
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
 import net.adamcin.granite.client.packman.async.AsyncPackageManagerClient;
@@ -75,7 +74,7 @@ public final class GraniteClientExecutor {
         final TaskListener listener = _listener != null ? _listener : DEFAULT_LISTENER;
         GraniteAHCFactory ahcFactory = GraniteAHCFactory.getFactoryInstance();
 
-        AsyncHttpClient ahcClient = ahcFactory.newInstance();
+        AsyncHttpClient ahcClient = ahcFactory.getInstance();
 
         AsyncPackageManagerClient client = new AsyncPackageManagerClient(ahcClient);
 
@@ -84,14 +83,10 @@ public final class GraniteClientExecutor {
         client.setServiceTimeout(config.getServiceTimeout());
         client.setWaitDelay(config.getWaitDelay());
 
-        try {
-            if (doLogin(client, config.getCredentials(), listener)) {
-                return callable.doExecute(client);
-            } else {
-                throw new IOException("Failed to login to " + config.getBaseUrl());
-            }
-        } finally {
-            ahcClient.closeAsynchronously();
+        if (doLogin(client, config.getCredentials(), listener)) {
+            return callable.doExecute(client);
+        } else {
+            throw new IOException("Failed to login to " + config.getBaseUrl());
         }
     }
 
@@ -147,7 +142,7 @@ public final class GraniteClientExecutor {
         if (GraniteAHCFactory.getFactoryInstance().isDisableBaseUrlValidation()) {
             return true;
         }
-        final AsyncHttpClient asyncHttpClient = GraniteAHCFactory.getFactoryInstance().newInstanceForValidation();
+        final AsyncHttpClient asyncHttpClient = GraniteAHCFactory.getFactoryInstance().getInstanceForValidation();
 
         AsyncPackageManagerClient client = new AsyncPackageManagerClient(asyncHttpClient);
 
@@ -156,11 +151,7 @@ public final class GraniteClientExecutor {
         client.setServiceTimeout(config.getServiceTimeout());
         client.setWaitDelay(config.getWaitDelay());
 
-        try {
-            return doLogin(client, config.getCredentials(), DEFAULT_LISTENER);
-        } finally {
-            asyncHttpClient.closeAsynchronously();
-        }
+        return doLogin(client, config.getCredentials(), DEFAULT_LISTENER);
     }
 
 }

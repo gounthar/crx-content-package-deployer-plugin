@@ -31,7 +31,6 @@ import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.AsyncHttpClientConfig;
-import com.ning.http.client.Realm;
 import hudson.Extension;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
@@ -39,6 +38,9 @@ import jenkins.model.Jenkins;
 import jenkins.plugins.asynchttpclient.AHCUtils;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Global extension and configurable factory for {@link AsyncHttpClient} instances
@@ -58,9 +60,51 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
     private int idleConnectionTimeoutInMsForValidation = DEFAULT_TIMEOUT_FOR_VALIDATION;
     private int requestTimeoutInMsForValidation = DEFAULT_TIMEOUT_FOR_VALIDATION;
 
+    private volatile AsyncHttpClient instance;
+    private volatile AsyncHttpClient instanceForValidation;
+
     public GraniteAHCFactory() {
         super(GraniteAHCFactory.class);
         load();
+        this.resetClients();
+    }
+
+    private void resetClients() {
+        if (this.instance != null) {
+            if (!this.instance.isClosed()) {
+                this.instance.closeAsynchronously();
+            }
+        }
+
+        this.instance = new AsyncHttpClient(
+                new AsyncHttpClientConfig.Builder()
+                        .setProxyServer(AHCUtils.getProxyServer())
+                        .setConnectionTimeoutInMs(this.connectionTimeoutInMs > 0 ?
+                                this.connectionTimeoutInMs : DEFAULT_TIMEOUT)
+                        .setIdleConnectionTimeoutInMs(this.idleConnectionTimeoutInMs > 0 ?
+                                this.idleConnectionTimeoutInMs : DEFAULT_TIMEOUT)
+                        .setRequestTimeoutInMs(this.requestTimeoutInMs > 0 ?
+                                this.requestTimeoutInMs : DEFAULT_TIMEOUT)
+                        .build()
+        );
+
+        if (this.instanceForValidation != null) {
+            if (!this.instanceForValidation.isClosed()) {
+                this.instanceForValidation.closeAsynchronously();
+            }
+        }
+
+        this.instanceForValidation = new AsyncHttpClient(
+                new AsyncHttpClientConfig.Builder()
+                        .setProxyServer(AHCUtils.getProxyServer())
+                        .setConnectionTimeoutInMs(this.connectionTimeoutInMsForValidation > 0 ?
+                                this.connectionTimeoutInMsForValidation : DEFAULT_TIMEOUT_FOR_VALIDATION)
+                        .setIdleConnectionTimeoutInMs(this.idleConnectionTimeoutInMsForValidation > 0 ?
+                                this.idleConnectionTimeoutInMsForValidation : DEFAULT_TIMEOUT_FOR_VALIDATION)
+                        .setRequestTimeoutInMs(this.requestTimeoutInMsForValidation > 0 ?
+                                this.requestTimeoutInMsForValidation : DEFAULT_TIMEOUT_FOR_VALIDATION)
+                        .build()
+        );
     }
 
     @SuppressWarnings("unchecked")
@@ -72,6 +116,7 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
     public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
         req.bindJSON(this, json.getJSONObject("GraniteAHCFactory"));
         save();
+        this.resetClients();
         return true;
     }
 
@@ -156,34 +201,17 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
         }
     }
 
-    public AsyncHttpClient newInstance() {
-        return new AsyncHttpClient(
-                new AsyncHttpClientConfig.Builder()
-                        .setProxyServer(AHCUtils.getProxyServer())
-                        .setConnectionTimeoutInMs(this.connectionTimeoutInMs > 0 ?
-                                this.connectionTimeoutInMs : DEFAULT_TIMEOUT)
-                        .setIdleConnectionTimeoutInMs(this.idleConnectionTimeoutInMs > 0 ?
-                                this.idleConnectionTimeoutInMs : DEFAULT_TIMEOUT)
-                        .setRequestTimeoutInMs(this.requestTimeoutInMs > 0 ?
-                                this.requestTimeoutInMs : DEFAULT_TIMEOUT)
-                        .build());
+    public AsyncHttpClient getInstance() {
+        return this.instance;
     }
 
     /**
-     * This variation of {@link #newInstance()} returns a client which uses the validation-specific timeout settings.
+     * This variation of {@link #getInstance()} returns a client which uses the validation-specific timeout settings.
+     *
      * @return
      */
-    public AsyncHttpClient newInstanceForValidation() {
-        return new AsyncHttpClient(
-                new AsyncHttpClientConfig.Builder()
-                        .setProxyServer(AHCUtils.getProxyServer())
-                        .setConnectionTimeoutInMs(this.connectionTimeoutInMsForValidation > 0 ?
-                                this.connectionTimeoutInMsForValidation : DEFAULT_TIMEOUT_FOR_VALIDATION)
-                        .setIdleConnectionTimeoutInMs(this.idleConnectionTimeoutInMsForValidation > 0 ?
-                                this.idleConnectionTimeoutInMsForValidation : DEFAULT_TIMEOUT_FOR_VALIDATION)
-                        .setRequestTimeoutInMs(this.requestTimeoutInMsForValidation > 0 ?
-                                this.requestTimeoutInMsForValidation : DEFAULT_TIMEOUT_FOR_VALIDATION)
-                        .build());
+    public AsyncHttpClient getInstanceForValidation() {
+        return this.instanceForValidation;
     }
 
     public static GraniteAHCFactory getFactoryInstance() {
