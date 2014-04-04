@@ -60,8 +60,8 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
     private int idleConnectionTimeoutInMsForValidation = DEFAULT_TIMEOUT_FOR_VALIDATION;
     private int requestTimeoutInMsForValidation = DEFAULT_TIMEOUT_FOR_VALIDATION;
 
-    private volatile AsyncHttpClient instance;
-    private volatile AsyncHttpClient instanceForValidation;
+    private transient AsyncHttpClient instance;
+    private transient AsyncHttpClient instanceForValidation;
 
     public GraniteAHCFactory() {
         super(GraniteAHCFactory.class);
@@ -72,7 +72,7 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
     private void resetClients() {
         if (this.instance != null) {
             if (!this.instance.isClosed()) {
-                this.instance.closeAsynchronously();
+                this.instance.close();
             }
         }
 
@@ -90,7 +90,7 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
 
         if (this.instanceForValidation != null) {
             if (!this.instanceForValidation.isClosed()) {
-                this.instanceForValidation.closeAsynchronously();
+                this.instanceForValidation.close();
             }
         }
 
