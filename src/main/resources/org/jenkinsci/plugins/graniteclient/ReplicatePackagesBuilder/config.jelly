@@ -27,6 +27,10 @@
 
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:creds="/lib/credentials">
 
+    <f:entry title="Base URL" field="baseUrls">
+        <f:expandableTextbox />
+    </f:entry>
+
     <f:entry title="Package ID" field="packageIds">
         <f:expandableTextbox/>
     </f:entry>
@@ -36,9 +40,6 @@
     </f:entry>
 
     <f:advanced title="Connection Options">
-        <f:entry title="Base URL" field="baseUrls">
-            <f:expandableTextbox />
-        </f:entry>
 
         <f:entry title="Credentials" field="credentialsId">
             <creds:select />

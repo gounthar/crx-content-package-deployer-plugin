@@ -483,10 +483,10 @@ public class DeployPackagesBuilder extends Builder {
 
         public ListBoxModel doFillBehaviorItems() {
             ListBoxModel model = new ListBoxModel();
+            model.add("Overwrite existing", "Overwrite");
             model.add("Uninstall and delete", "Uninstall");
-            model.add("Delete", "Delete");
-            model.add("Overwrite", "Overwrite");
-            model.add("Skip", "Skip");
+            model.add("Skip package", "Skip");
+            model.add("Delete package", "Delete");
             model.add("Ignore", "Ignore");
             return model;
         }
