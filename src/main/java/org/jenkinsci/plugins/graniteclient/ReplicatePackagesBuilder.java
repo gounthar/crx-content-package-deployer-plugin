@@ -30,11 +30,7 @@ package org.jenkinsci.plugins.graniteclient;
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import hudson.Extension;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
-import hudson.model.Result;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
@@ -244,9 +240,10 @@ public class ReplicatePackagesBuilder extends Builder {
 				@QueryParameter long serviceTimeout) {
 			for (String baseUrl : parseBaseUrls(value)) {
 				try {
-					if (!GraniteClientExecutor.validateBaseUrl(new GraniteClientConfig(baseUrl, credentialsId, requestTimeout,
-                            serviceTimeout))) {
-						return FormValidation.error("Failed to login to " + baseUrl);
+                    GraniteClientConfig config =
+                            new GraniteClientConfig(baseUrl, credentialsId, requestTimeout, serviceTimeout);
+					if (!GraniteClientExecutor.validateBaseUrl(config)) {
+                        return FormValidation.error("Failed to login to " + config.getBaseUrl() + " as " + config.getUsername());
 					}
 				} catch (IOException e) {
 					return FormValidation.error(e.getCause(), e.getMessage());

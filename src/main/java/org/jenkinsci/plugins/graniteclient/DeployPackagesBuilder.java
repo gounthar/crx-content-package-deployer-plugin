@@ -31,11 +31,7 @@ import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxMode
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
-import hudson.model.Result;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import hudson.remoting.VirtualChannel;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
@@ -43,7 +39,6 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import net.adamcin.granite.client.packman.ACHandling;
 import net.adamcin.granite.client.packman.PackId;
-import net.adamcin.granite.client.packman.PackIdFilter;
 import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -52,16 +47,7 @@ import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Implementation of the "Deploy Content Packages to CRX" build step
@@ -266,7 +252,10 @@ public class DeployPackagesBuilder extends Builder {
 
         for (String baseUrl : listBaseUrls(build, listener)) {
             if (result.isBetterOrEqualTo(Result.UNSTABLE)) {
-                listener.getLogger().printf("Deploying packages to %s%n", baseUrl);
+                GraniteClientConfig clientConfig =
+                        new GraniteClientConfig(baseUrl, credentialsId, requestTimeout, serviceTimeout, waitDelay);
+
+                listener.getLogger().printf("Deploying packages to %s%n", clientConfig.getBaseUrl());
                 for (Map.Entry<PackId, FilePath> selectedPackage : selectPackages(build, listener).entrySet()) {
                     if (!result.isBetterOrEqualTo(Result.UNSTABLE)) {
                         return false;
@@ -275,8 +264,6 @@ public class DeployPackagesBuilder extends Builder {
                     if (disableForJobTesting) {
                         callable = new DebugPackageCallable(selectedPackage.getKey(), listener);
                     } else {
-                        GraniteClientConfig clientConfig =
-                                new GraniteClientConfig(baseUrl, credentialsId, requestTimeout, serviceTimeout, waitDelay);
 
                         callable = new DeployPackageCallable(
                                 clientConfig, listener,
@@ -466,9 +453,10 @@ public class DeployPackagesBuilder extends Builder {
                                               @QueryParameter long requestTimeout, @QueryParameter long serviceTimeout) {
             for (String baseUrl : parseBaseUrls(value)) {
                 try {
-                    if (!GraniteClientExecutor.validateBaseUrl(
-                            new GraniteClientConfig(baseUrl, credentialsId, requestTimeout, serviceTimeout))) {
-                        return FormValidation.error("Failed to login to " + baseUrl);
+                    GraniteClientConfig config =
+                            new GraniteClientConfig(baseUrl, credentialsId, requestTimeout, serviceTimeout);
+                    if (!GraniteClientExecutor.validateBaseUrl(config)) {
+                        return FormValidation.error("Failed to login to " + config.getBaseUrl() + " as " + config.getUsername());
                     }
                 } catch (IOException e) {
                     return FormValidation.error(e.getCause(), e.getMessage());

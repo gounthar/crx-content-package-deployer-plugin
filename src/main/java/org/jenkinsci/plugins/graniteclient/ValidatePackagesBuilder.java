@@ -30,17 +30,12 @@ package org.jenkinsci.plugins.graniteclient;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
-import hudson.model.Result;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import hudson.remoting.VirtualChannel;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import net.adamcin.granite.client.packman.PackId;
-import net.adamcin.granite.client.packman.PackIdFilter;
 import net.adamcin.granite.client.packman.WspFilter;
 import net.adamcin.granite.client.packman.validation.DefaultValidationOptions;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
@@ -49,12 +44,7 @@ import org.kohsuke.stapler.QueryParameter;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Implementation of the "Validate CRX Content Packages" build step

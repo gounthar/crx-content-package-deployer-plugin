@@ -28,21 +28,18 @@
 package org.jenkinsci.plugins.graniteclient;
 
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
-import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.CredentialsDescriptor;
-import com.cloudbees.plugins.credentials.CredentialsMatcher;
-import com.cloudbees.plugins.credentials.CredentialsNameProvider;
-import com.cloudbees.plugins.credentials.CredentialsScope;
-import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
+import com.cloudbees.plugins.credentials.*;
 import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.util.Secret;
+import jenkins.model.Jenkins;
 import net.adamcin.httpsig.api.Key;
 import net.adamcin.httpsig.api.KeyId;
 import net.adamcin.httpsig.ssh.bc.PEMUtil;
-import net.adamcin.httpsig.ssh.jce.FingerprintableKey;
 import net.adamcin.httpsig.ssh.jce.UserKeysFingerprintKeyId;
 
 import java.io.IOException;
@@ -60,18 +57,42 @@ abstract class GraniteNamedIdCredentials implements IdCredentials {
     private static final long serialVersionUID = -7611025520557823267L;
 
     public static Credentials getCredentialsById(String credentialsId) {
-        CredentialsMatcher matcher = new CredentialsIdMatcher(credentialsId);
-        List<Credentials> credentialsList =
-                DomainCredentials.getCredentials(
-                        SystemCredentialsProvider.getInstance().getDomainCredentialsMap(),
-                        Credentials.class, Collections.<DomainRequirement>emptyList(), matcher
-                );
+        if (sanityCheck()) {
+            if (credentialsId != null) {
+                CredentialsMatcher matcher = new CredentialsIdMatcher(credentialsId);
+                List<Credentials> credentialsList =
+                        DomainCredentials.getCredentials(
+                                SystemCredentialsProvider.getInstance().getDomainCredentialsMap(),
+                                Credentials.class, Collections.<DomainRequirement>emptyList(), matcher
+                        );
 
-        if (!credentialsList.isEmpty()) {
-            return credentialsList.iterator().next();
-        } else {
-            return null;
+                if (!credentialsList.isEmpty()) {
+                    return credentialsList.iterator().next();
+                }
+            }
         }
+
+        return null;
+    }
+
+    public static Credentials getCredentialsFromURIUserInfo(String userInfo, Credentials toOverride) {
+        if (sanityCheck() && userInfo != null && !userInfo.isEmpty()) {
+            if (userInfo.indexOf(':') >= 0) {
+                String[] parts = userInfo.split(":", 2);
+                return new URIUserInfoCredentials(parts[0], parts[1], null);
+            } else if (toOverride instanceof SSHUserPrivateKey) {
+                return new URIUserInfoCredentialsWithSSHKey(userInfo, (SSHUserPrivateKey) toOverride);
+            } else if (toOverride instanceof StandardUsernamePasswordCredentials) {
+                return new URIUserInfoCredentials(userInfo, null, (StandardUsernamePasswordCredentials) toOverride);
+            } else {
+                return new URIUserInfoCredentials(userInfo, null, null);
+            }
+        }
+        return null;
+    }
+
+    private static boolean sanityCheck() {
+        return Jenkins.getInstance() != null;
     }
 
     public CredentialsScope getScope() {
@@ -147,6 +168,72 @@ abstract class GraniteNamedIdCredentials implements IdCredentials {
         @NonNull
         public String getId() {
             return wrapped.getId();
+        }
+    }
+
+    static class URIUserInfoCredentials extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
+        private String username;
+        private Secret password;
+        private StandardUsernamePasswordCredentials wrapped;
+
+        URIUserInfoCredentials(String username, String password, StandardUsernamePasswordCredentials wrapped) {
+            super("URIUserInfoCredentials_" + username, "");
+            if (username == null) {
+                throw new NullPointerException("username");
+            }
+            this.username = username;
+
+            this.password = password == null || password.isEmpty() ? null : Secret.fromString(password);
+            this.wrapped = wrapped;
+        }
+
+        @NonNull
+        public String getUsername() {
+            return username;
+        }
+
+        @NonNull
+        public Secret getPassword() {
+            if (this.password != null) {
+                return this.password;
+            }
+
+            if (this.wrapped != null) {
+                return this.wrapped.getPassword();
+            }
+
+            return Secret.fromString("admin");
+        }
+    }
+
+    static class URIUserInfoCredentialsWithSSHKey extends BaseStandardCredentials implements SSHUserPrivateKey {
+        private String username;
+        private SSHUserPrivateKey wrapped;
+
+        URIUserInfoCredentialsWithSSHKey(String username, SSHUserPrivateKey wrapped) {
+            super("URIUserInfoCredentialsWithSSHKey_" + username, "");
+            if (username == null) {
+                throw new NullPointerException("username");
+            }
+            if (wrapped == null) {
+                throw new NullPointerException("wrapped");
+            }
+            this.username = username;
+            this.wrapped = wrapped;
+        }
+
+        @NonNull
+        public String getPrivateKey() {
+            return wrapped.getPrivateKey();
+        }
+
+        public Secret getPassphrase() {
+            return wrapped.getPassphrase();
+        }
+
+        @NonNull
+        public String getUsername() {
+            return this.username;
         }
     }
 

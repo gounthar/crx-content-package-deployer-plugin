@@ -29,25 +29,28 @@
     Specify a package workspace filter in a simple text format that will be applied to
     the package before build. This defines what content will be captured by the package.<br/>
     <br/>
-    Simple spec is defined simply as a line-by-line format where:
+    Simple spec is defined simply as a line-by-line format where:<br/>
     <ul>
         <li>each line consists of significant text before an optional comment character (#)</li>
         <li>each line that begins with a "/" begins a new filter root.</li>
         <li>the first non-empty, non-comment line must define a new filter root</li>
         <li>each non-empty, non-comment line after a filter root that begins with a "+" or "-" defines an include or exclude rule, respectively. Everything following the "+" or "-" must be a valid regular expression</li>
-    </ul><br/>
+    </ul>
     Content is "covered" by a filter root if the content path starts with, or is the same as the filter root path. Once the "covering" filter root is identified, its include/exclude rules are evaluated from top to bottom, by matching the content path against each rule pattern (which is a Java regular expression). The last rule whose pattern matches the content
     path defines whether that content is included (line starts with "+") or excluded (line starts with "-"). If no rules are defined, all content covered by that root path is included<br/>
     <br/>
     For example, to include everything under /etc except for packages:<br/>
+    <br/>
     <pre>
         /etc                 # define /etc as the filter root
         +/etc(/.*)?          # include everything under /etc
         -/etc/packages(/.)?  # exclude package paths
-    </pre><br/>
+    </pre>
     To create a package for a project "acme" defined in CRX DE Lite, a filter may look like this:<br/>
+    <br/>
     <pre>
         /content/acme        # include the site content
         /apps/acme           # include the app code
     </pre>
+    This field supports parameter tokens.
 </div>

@@ -34,8 +34,6 @@ import hudson.remoting.VirtualChannel;
 import net.adamcin.granite.client.packman.validation.DefaultValidationOptions;
 import net.adamcin.granite.client.packman.validation.PackageValidator;
 import net.adamcin.granite.client.packman.validation.ValidationResult;
-import net.adamcin.granite.client.packman.validation.ValidationResult.Reason.*;
-
 
 import java.io.File;
 import java.io.IOException;

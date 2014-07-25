@@ -28,12 +28,11 @@
 <div>
     Specify a list of package ID filters to match against identified Vault packages located in
     the workspace. Each filter string must occupy its own line.<br/>
-
+    <br/>
     A Package ID consists of the group, the name, and the version of a package, separated by
-    colons (':').
-
-    Package ID filters must follow one of three patterns:
-
+    colons (':').<br/>
+    <br/>
+    Package ID filters must follow one of three patterns:<br/>
     <ul>
         <li>
             <tt>group:name:version</tt>
@@ -45,20 +44,22 @@
             <tt>name</tt>
         </li>
     </ul>
-
     Each segment in the package ID filter may be either ommitted or replaced with an asterisk ('*') to
     represent a wildcard.<br/>
     <br/>
     This step now supports path filters as well. A path filter is a path suffix relative to the localDirectory ending in '.zip' or '.jar', which may include '**', '*', and '?' wildcard characters.<br/>
     <br/>
-    For example, this pattern will match all zip files under the Local Directory:
+    For example, this pattern will match all zip files under the Local Directory:<br/>
+    <br/>
     <pre>
         **/*.zip
     </pre>
-    This pattern will only match packages located directly under the Packages folder whose filenames begin with 'acme-':
+    This pattern will only match packages located directly under the Packages folder whose filenames begin with 'acme-':<br/>
+    <br/>
     <pre>
         Packages/acme-*.zip
     </pre>
-
-    Matching packages will be validated in the order in which the filters are specified. At least one package must match each filter or the step will fail.
+    Matching packages will be validated in the order in which the filters are specified. At least one package must match each filter or the step will fail.<br/>
+    <br/>
+    This field supports parameter tokens.
 </div>

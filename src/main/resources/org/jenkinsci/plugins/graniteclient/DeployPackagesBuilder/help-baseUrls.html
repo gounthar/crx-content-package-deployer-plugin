@@ -29,8 +29,24 @@
     Specify the base URL of the Adobe Granite server, including hostname and port.
     The CRX Package Manager service path will be appended to this value for all requests.
     For example, <strong>http://localhost:4502</strong> or <strong>https://author.mycorp.com</strong>,
-    etc.
-
+    etc.<br/>
+    <br/>
     Multiple urls can be specified, one per line. All specified packages will be deployed to one
-    server before beginning deployments to the next one.
+    server before beginning deployments to the next one.<br/>
+    <br/>
+    If login credentials for one of the servers are different than those configured in the Connection Options section,
+    you may override them in the Base URL by inserting <code>username[:password]@</code> between the scheme and
+    the hostname.<br/>
+    <br/>
+    For example, to override the Username without changing the associated password or private key, you may use the
+    following form:<br/>
+    <br/>
+    http://<strong>deployer@</strong>localhost:4502<br/>
+    <br/>
+    To override the credentials completely, provide a username and password (which may be provided by an encrypted
+    parameter) by separating them with a colon, as shown below:<br/>
+    <br/>
+    http://<strong>deployer:Password123@</strong>localhost:4502<br/>
+    <br/>
+    This field supports parameter tokens.
 </div>

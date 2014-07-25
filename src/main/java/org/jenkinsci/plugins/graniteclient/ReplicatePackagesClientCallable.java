@@ -2,13 +2,12 @@ package org.jenkinsci.plugins.graniteclient;
 
 import hudson.model.Result;
 import hudson.model.TaskListener;
-
-import java.io.Serializable;
-import java.util.List;
-
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.PackageManagerClient;
 import net.adamcin.granite.client.packman.SimpleResponse;
+
+import java.io.Serializable;
+import java.util.List;
 
 public class ReplicatePackagesClientCallable implements PackageManagerClientCallable<Result>, Serializable {
 

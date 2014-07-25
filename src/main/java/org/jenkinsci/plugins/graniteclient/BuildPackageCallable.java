@@ -31,17 +31,10 @@ import hudson.FilePath;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
-import net.adamcin.granite.client.packman.DetailedResponse;
-import net.adamcin.granite.client.packman.DownloadResponse;
-import net.adamcin.granite.client.packman.PackId;
-import net.adamcin.granite.client.packman.PackageManagerClient;
-import net.adamcin.granite.client.packman.ResponseProgressListener;
-import net.adamcin.granite.client.packman.SimpleResponse;
-import net.adamcin.granite.client.packman.WspFilter;
+import net.adamcin.granite.client.packman.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 /**
  * Implementation of {@link hudson.FilePath.FileCallable} used by the {@link org.jenkinsci.plugins.graniteclient.BuildPackageBuilder}

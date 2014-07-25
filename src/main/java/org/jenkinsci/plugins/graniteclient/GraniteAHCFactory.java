@@ -39,9 +39,6 @@ import jenkins.plugins.asynchttpclient.AHCUtils;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 /**
  * Global extension and configurable factory for {@link AsyncHttpClient} instances
  */
@@ -215,11 +212,13 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
     }
 
     public static GraniteAHCFactory getFactoryInstance() {
-        Descriptor descriptor = Jenkins.getInstance().getDescriptorOrDie(GraniteAHCFactory.class);
-        if (descriptor instanceof GraniteAHCFactory) {
-            return (GraniteAHCFactory) descriptor;
-        } else {
-            return new GraniteAHCFactory();
+        if (Jenkins.getInstance() != null) {
+            Descriptor descriptor = Jenkins.getInstance().getDescriptorOrDie(GraniteAHCFactory.class);
+            if (descriptor instanceof GraniteAHCFactory) {
+                return (GraniteAHCFactory) descriptor;
+            }
         }
+
+        return new GraniteAHCFactory();
     }
 }

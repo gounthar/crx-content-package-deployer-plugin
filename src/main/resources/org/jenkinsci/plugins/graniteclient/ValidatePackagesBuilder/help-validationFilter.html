@@ -26,21 +26,22 @@
   -->
 
 <div>
-    Specify a validation workspace filter in a simple text format that each package workspace filter will be evaluated against.
+    Specify a validation workspace filter in a simple text format that each package workspace filter will be evaluated against.<br/>
     <br/>
-    Simple spec is defined simply as a line-by-line format where:
+    Simple spec is defined simply as a line-by-line format where:<br/>
     <ul>
         <li>each line consists of significant text before an optional comment character (#)</li>
         <li>each line that begins with a "/" begins a new filter root.</li>
         <li>the first non-empty, non-comment line must define a new filter root</li>
         <li>each non-empty, non-comment line after a filter root that begins with a "+" or "-" defines an include or exclude rule, respectively. Everything following the "+" or "-" must be a valid regular expression</li>
-    </ul><br/>
-    A package filter root is "covered" by a validation filter root if the package filter root path starts with, or is the same as the validation filter root path. Once the "covering" validation filter root is identified, the package filter root's include/exclude rules are inspected to be sure that they contain all of the validation filter's rules in order, at the end of the list.
+    </ul>
+    A package filter root is "covered" by a validation filter root if the package filter root path starts with, or is the same as the validation filter root path. Once the "covering" validation filter root is identified, the package filter root's include/exclude rules are inspected to be sure that they contain all of the validation filter's rules in order, at the end of the list.<br/>
     <br/>
     For example, to require that packages exclude the /etc/packages folder:<br/>
+    <br/>
     <pre>
         /etc                 # define /etc as the filter root
         -/etc/packages(/.)?  # exclude package paths
-    </pre><br/>
-
+    </pre>
+    This field supports parameter tokens.
 </div>

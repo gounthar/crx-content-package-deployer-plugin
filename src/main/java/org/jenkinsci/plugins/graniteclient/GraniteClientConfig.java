@@ -27,10 +27,17 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import com.cloudbees.jenkins.plugins.sshcredentials.SSHUser;
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.common.UsernameCredentials;
+import jenkins.model.Jenkins;
 
 import java.io.Serializable;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Pojo for capturing the group of configuration values for a single Granite Client connection
@@ -55,12 +62,43 @@ public final class GraniteClientConfig implements Serializable {
     }
 
     public GraniteClientConfig(String baseUrl, String credentialsId, long requestTimeout, long serviceTimeout, long waitDelay) {
-        this.baseUrl = baseUrl;
         this.credentialsId = credentialsId;
         this.requestTimeout = requestTimeout > 0L ? requestTimeout : -1L;
         this.serviceTimeout = serviceTimeout > 0L ? serviceTimeout : -1L;
         this.waitDelay = waitDelay > 0L ? waitDelay : -1L;
-        this.credentials = GraniteNamedIdCredentials.getCredentialsById(credentialsId);
+
+        String _baseUrl = sanitizeUrl(baseUrl);
+
+        Credentials _credentials = GraniteNamedIdCredentials.getCredentialsById(credentialsId);
+
+        if (_credentials == null) {
+            _credentials = GraniteAHCFactory.getFactoryInstance().getDefaultCredentials();
+        }
+
+        try {
+            URI baseUri = new URI(_baseUrl);
+            if (baseUri.getUserInfo() != null) {
+
+                _credentials = GraniteNamedIdCredentials
+                        .getCredentialsFromURIUserInfo(baseUri.getUserInfo(), _credentials);
+
+                URI changed = new URI(
+                        baseUri.getScheme(),
+                        null,
+                        baseUri.getHost(),
+                        baseUri.getPort(),
+                        baseUri.getPath(),
+                        baseUri.getQuery(),
+                        baseUri.getFragment());
+
+                _baseUrl = changed.toString();
+            }
+        } catch (URISyntaxException e) {
+            // do nothing at the moment;
+        }
+
+        this.baseUrl = _baseUrl;
+        this.credentials = _credentials;
     }
 
     public String getBaseUrl() {
@@ -73,6 +111,16 @@ public final class GraniteClientConfig implements Serializable {
 
     public boolean isSignatureLogin() {
         return credentials instanceof SSHUserPrivateKey;
+    }
+
+    public String getUsername() {
+        if (this.credentials instanceof SSHUser) {
+            return ((SSHUser) this.credentials).getUsername();
+        } else if (this.credentials instanceof UsernameCredentials) {
+            return ((UsernameCredentials) this.credentials).getUsername();
+        } else {
+            return "admin";
+        }
     }
 
     public long getRequestTimeout() {
@@ -91,4 +139,64 @@ public final class GraniteClientConfig implements Serializable {
         return credentials;
     }
 
+    private static final Pattern HTTP_URL_PATTERN = Pattern.compile("(https?://)([^/]+)($|/.*)");
+
+    public static String sanitizeUrl(final String url) {
+        // remove tokens with extreme prejudice
+        String _url = url.replaceAll("\\$\\{\\w*\\}?", "");
+
+        // identify http/s URLs, since that's really all we support
+        Matcher urlMatcher = HTTP_URL_PATTERN.matcher(_url);
+        if (urlMatcher.find()) {
+
+            StringBuilder sb = new StringBuilder(urlMatcher.group(1));
+
+            final String authority = urlMatcher.group(2);
+
+            int lastAt = authority.lastIndexOf('@');
+            if (lastAt >= 0) {
+                final String host = authority.substring(lastAt);
+                final String rawUserInfo = authority.substring(0, lastAt);
+                final int firstColon = rawUserInfo.indexOf(':');
+                if (firstColon >= 0) {
+                    String rawUsername = rawUserInfo.substring(0, firstColon);
+                    String rawPassword = rawUserInfo.substring(firstColon + 1);
+                    sb.append(urlEscape(rawUsername)).append(":").append(urlEscape(rawPassword));
+                } else {
+                    sb.append(urlEscape(rawUserInfo));
+                }
+
+                sb.append(host);
+            } else {
+                sb.append(authority);
+            }
+
+            _url = sb.append(urlMatcher.group(3)).toString();
+        }
+
+        return _url;
+    }
+
+    private static String urlEscape(final String raw) {
+        return raw.replaceAll("%(?![A-Fa-f0-9][A-Fa-f0-9])", "%25")
+                .replace(" ", "%20")
+                .replace("!", "%21")
+                .replace("#", "%23")
+                .replace("$", "%24")
+                .replace("&", "%26")
+                .replace("'", "%27")
+                .replace("(", "%28")
+                .replace(")", "%29")
+                .replace("*", "%2A")
+                .replace("+", "%2B")
+                .replace(",", "%2C")
+                .replace("/", "%2F")
+                .replace(":", "%3A")
+                .replace(";", "%3B")
+                .replace("=", "%3D")
+                .replace("?", "%3F")
+                .replace("@", "%40")
+                .replace("[", "%5B")
+                .replace("]", "%5D");
+    }
 }

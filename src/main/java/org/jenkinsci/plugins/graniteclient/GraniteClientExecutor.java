@@ -29,7 +29,7 @@ package org.jenkinsci.plugins.graniteclient;
 
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.ning.http.client.AsyncCompletionHandler;
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.Response;
@@ -97,9 +97,9 @@ public final class GraniteClientExecutor {
 
         if (_creds instanceof SSHUserPrivateKey) {
             return doLoginSignature(client, (SSHUserPrivateKey) _creds, listener);
-        } else if (_creds instanceof StandardUsernamePasswordCredentials) {
-            String username = ((StandardUsernamePasswordCredentials) _creds).getUsername();
-            String password = ((StandardUsernamePasswordCredentials) _creds).getPassword().getPlainText();
+        } else if (_creds instanceof UsernamePasswordCredentials) {
+            String username = ((UsernamePasswordCredentials) _creds).getUsername();
+            String password = ((UsernamePasswordCredentials) _creds).getPassword().getPlainText();
             return doLoginPOST(client, username, password, listener);
         } else {
             return doLoginPOST(client, "admin", "admin", listener);

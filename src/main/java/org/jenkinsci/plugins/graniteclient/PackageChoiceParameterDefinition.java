@@ -32,11 +32,7 @@ import hudson.Extension;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
 import hudson.util.FormValidation;
-import net.adamcin.granite.client.packman.ListResponse;
-import net.adamcin.granite.client.packman.ListResult;
-import net.adamcin.granite.client.packman.PackId;
-import net.adamcin.granite.client.packman.PackIdFilter;
-import net.adamcin.granite.client.packman.PackageManagerClient;
+import net.adamcin.granite.client.packman.*;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
@@ -68,9 +64,10 @@ public class PackageChoiceParameterDefinition extends ParameterDefinition {
         public FormValidation doCheckBaseUrl(@QueryParameter String value, @QueryParameter String credentialsId,
                                              @QueryParameter long requestTimeout, @QueryParameter long serviceTimeout) {
             try {
-                if (!GraniteClientExecutor.validateBaseUrl(
-                        new GraniteClientConfig(value, credentialsId, requestTimeout, serviceTimeout))) {
-                    return FormValidation.error("Failed to login to " + value);
+                GraniteClientConfig config =
+                        new GraniteClientConfig(value, credentialsId, requestTimeout, serviceTimeout);
+                if (!GraniteClientExecutor.validateBaseUrl(config)) {
+                    return FormValidation.error("Failed to login to " + config.getBaseUrl() + " as " + config.getUsername());
                 }
                 return FormValidation.ok();
             } catch (IOException e) {
