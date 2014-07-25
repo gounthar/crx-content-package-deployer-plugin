@@ -178,7 +178,7 @@ public final class GraniteClientConfig implements Serializable {
     }
 
     private static String urlEscape(final String raw) {
-        return raw.replaceAll("%(?![A-Fa-f0-9][A-Fa-f0-9])", "%25")
+        return raw.replaceAll("%(?![A-Fa-f0-9]{2})", "%25")
                 .replace(" ", "%20")
                 .replace("!", "%21")
                 .replace("#", "%23")
