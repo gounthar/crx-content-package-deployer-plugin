@@ -299,7 +299,7 @@ public class PackageChoiceParameterDefinition extends ParameterDefinition {
         return PathOrPackIdFilter.parse(getPackageIdFilter());
     }
 
-    private GraniteClientConfig getGraniteClientConfig() {
+    public GraniteClientConfig getGraniteClientConfig() {
         return new GraniteClientConfig(getBaseUrl(), getCredentialsId(), requestTimeout, serviceTimeout);
 
     }

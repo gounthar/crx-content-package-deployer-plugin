@@ -28,7 +28,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler"
          xmlns:f="/lib/form"
         >
-    <j:set var="fullDescription" value="List of packages on ${it.baseUrl}. ${it.description}"/>
+    <j:set var="fullDescription" value="List of packages on ${it.graniteClientConfig.baseUrl}. ${it.description}"/>
     <f:entry title="${it.name}" description="${fullDescription}">
         <div name="parameter" description="${fullDescription}">
             <j:set var="multiselect" value="${it.multiselect}"/>
