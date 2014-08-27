@@ -57,8 +57,8 @@
             <name>Mark Adamcin</name>
             <email>adamcin@gmail.com</email>
             <url>http://adamcin.net</url>
-            <organization>Acquity Group</organization>
-            <organizationUrl>http://www.acquitygroup.com</organizationUrl>
+            <organization>Mashery</organization>
+            <organizationUrl>http://www.mashery.com</organizationUrl>
             <roles>
                 <role>architect</role>
                 <role>developer</role>
@@ -120,7 +120,7 @@
         <dependency>
             <groupId>net.adamcin.granite</groupId>
             <artifactId>granite-client-packman</artifactId>
-            <version>0.7.2</version>
+            <version>0.7.4</version>
         </dependency>
         <dependency>
             <groupId>net.adamcin.httpsig</groupId>
