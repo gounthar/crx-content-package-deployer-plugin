@@ -31,11 +31,13 @@ import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxMode
 import hudson.Extension;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
+import hudson.security.AccessControlled;
 import hudson.util.FormValidation;
 import net.adamcin.granite.client.packman.*;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -75,8 +77,8 @@ public class PackageChoiceParameterDefinition extends ParameterDefinition {
             }
         }
 
-        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@QueryParameter String baseUrl) {
-            return GraniteCredentialsListBoxModel.fillItems(baseUrl);
+        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context, @QueryParameter String baseUrl) {
+            return GraniteCredentialsListBoxModel.fillItems(context, baseUrl);
         }
     }
 

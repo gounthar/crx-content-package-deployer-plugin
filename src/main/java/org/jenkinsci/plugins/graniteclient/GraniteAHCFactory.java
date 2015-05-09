@@ -34,9 +34,11 @@ import com.ning.http.client.AsyncHttpClientConfig;
 import hudson.Extension;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
+import hudson.security.AccessControlled;
 import jenkins.model.Jenkins;
 import jenkins.plugins.asynchttpclient.AHCUtils;
 import net.sf.json.JSONObject;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.StaplerRequest;
 
 /**
@@ -186,8 +188,8 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
         return "CRX Content Package Deployer - HTTP Client";
     }
 
-    public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems() {
-        return GraniteCredentialsListBoxModel.fillItems();
+    public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context) {
+        return GraniteCredentialsListBoxModel.fillItems(context);
     }
 
     public Credentials getDefaultCredentials() {

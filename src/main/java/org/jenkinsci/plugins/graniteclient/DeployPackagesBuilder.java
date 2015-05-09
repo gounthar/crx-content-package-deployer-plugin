@@ -33,6 +33,7 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
 import hudson.remoting.VirtualChannel;
+import hudson.security.AccessControlled;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
@@ -41,6 +42,7 @@ import net.adamcin.granite.client.packman.ACHandling;
 import net.adamcin.granite.client.packman.PackId;
 import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -439,13 +441,13 @@ public class DeployPackagesBuilder extends Builder {
             return true;
         }
 
-        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@QueryParameter String baseUrls) {
+        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context, @QueryParameter String baseUrls) {
             List<String> _baseUrls = parseBaseUrls(baseUrls);
 
             if (_baseUrls != null && !_baseUrls.isEmpty()) {
-                return GraniteCredentialsListBoxModel.fillItems(_baseUrls.iterator().next());
+                return GraniteCredentialsListBoxModel.fillItems(context, _baseUrls.iterator().next());
             } else {
-                return GraniteCredentialsListBoxModel.fillItems();
+                return GraniteCredentialsListBoxModel.fillItems(context);
             }
         }
 
