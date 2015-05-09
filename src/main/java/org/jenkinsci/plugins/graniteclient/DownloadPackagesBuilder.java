@@ -31,12 +31,14 @@ import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxMode
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.*;
+import hudson.security.AccessControlled;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import net.adamcin.granite.client.packman.PackId;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
@@ -229,8 +231,8 @@ public class DownloadPackagesBuilder extends Builder {
             return true;
         }
 
-        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@QueryParameter String baseUrl) {
-            return GraniteCredentialsListBoxModel.fillItems(baseUrl);
+        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context, @QueryParameter String baseUrl) {
+            return GraniteCredentialsListBoxModel.fillItems(context, baseUrl);
         }
 
         public FormValidation doCheckBaseUrl(@QueryParameter String value, @QueryParameter String credentialsId,

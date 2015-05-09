@@ -31,12 +31,14 @@ import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxMode
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.*;
+import hudson.security.AccessControlled;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import net.adamcin.granite.client.packman.PackId;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
@@ -224,13 +226,13 @@ public class ReplicatePackagesBuilder extends Builder {
             return true;
         }
 
-        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@QueryParameter String baseUrls) {
+        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context, @QueryParameter String baseUrls) {
             List<String> _baseUrls = parseBaseUrls(baseUrls);
 
             if (_baseUrls != null && !_baseUrls.isEmpty()) {
-                return GraniteCredentialsListBoxModel.fillItems(_baseUrls.iterator().next());
+                return GraniteCredentialsListBoxModel.fillItems(context, _baseUrls.iterator().next());
             } else {
-                return GraniteCredentialsListBoxModel.fillItems();
+                return GraniteCredentialsListBoxModel.fillItems(context);
             }
         }
 

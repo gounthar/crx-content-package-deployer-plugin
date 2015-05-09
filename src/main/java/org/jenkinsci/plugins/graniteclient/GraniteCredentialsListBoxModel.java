@@ -38,6 +38,8 @@ import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Item;
 import hudson.security.ACL;
+import hudson.security.AccessControlled;
+import hudson.util.ListBoxModel;
 
 import java.util.Collections;
 import java.util.List;
@@ -59,25 +61,28 @@ public class GraniteCredentialsListBoxModel extends AbstractIdCredentialsListBox
         }
     }
 
-    public static AbstractIdCredentialsListBoxModel fillItems() {
-        return fillItems(Collections.<DomainRequirement>emptyList());
+    public static AbstractIdCredentialsListBoxModel fillItems(final AccessControlled context) {
+        return fillItems(context, Collections.<DomainRequirement>emptyList());
     }
 
-    public static AbstractIdCredentialsListBoxModel fillItems(final String baseUrl) {
+    public static AbstractIdCredentialsListBoxModel fillItems(final AccessControlled context, final String baseUrl) {
         if (baseUrl != null) {
-            return fillItems(URIRequirementBuilder.fromUri(baseUrl).build());
+            return fillItems(context, URIRequirementBuilder.fromUri(baseUrl).build());
         } else {
-            return fillItems();
+            return fillItems(context);
         }
     }
 
-    private static AbstractIdCredentialsListBoxModel fillItems(List<DomainRequirement> reqs) {
+    private static AbstractIdCredentialsListBoxModel fillItems(final AccessControlled context, final List<DomainRequirement> reqs) {
+        AbstractIdCredentialsListBoxModel<GraniteCredentialsListBoxModel, IdCredentials> model =
+                new GraniteCredentialsListBoxModel().withEmptySelection();
+
+        if (context == null || !context.hasPermission(Item.CONFIGURE)) {
+            return model;
+        }
 
         List<SSHUserPrivateKey> keys = CredentialsProvider.lookupCredentials(SSHUserPrivateKey.class,
                 (Item) null, ACL.SYSTEM, reqs);
-
-        AbstractIdCredentialsListBoxModel<GraniteCredentialsListBoxModel, IdCredentials> model =
-                new GraniteCredentialsListBoxModel().withEmptySelection();
 
         if (!keys.isEmpty()) {
             for (SSHUserPrivateKey key : keys) {
