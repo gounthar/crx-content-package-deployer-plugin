@@ -19,3 +19,7 @@ lib/
 
 */crx-quickstart/
 work/
+
+.classpath
+.project
+.settings
