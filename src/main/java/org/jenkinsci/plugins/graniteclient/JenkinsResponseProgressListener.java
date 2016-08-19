@@ -30,10 +30,12 @@ package org.jenkinsci.plugins.graniteclient;
 import hudson.model.TaskListener;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 
+import java.io.Serializable;
+
 /**
  * Wraps a {@link TaskListener} in a {@link ResponseProgressListener} interface
  */
-public class JenkinsResponseProgressListener implements ResponseProgressListener {
+public class JenkinsResponseProgressListener implements ResponseProgressListener, Serializable {
 
     final TaskListener listener;
 
