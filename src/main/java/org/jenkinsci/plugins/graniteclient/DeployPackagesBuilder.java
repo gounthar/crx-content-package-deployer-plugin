@@ -38,6 +38,7 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import jenkins.MasterToSlaveFileCallable;
 import net.adamcin.granite.client.packman.ACHandling;
 import net.adamcin.granite.client.packman.PackId;
 import net.sf.json.JSONObject;
@@ -308,7 +309,7 @@ public class DeployPackagesBuilder extends Builder {
             ));
 
             for (FilePath path : listed) {
-                PackId packId = path.act(new FilePath.FileCallable<PackId>() {
+                PackId packId = path.act(new MasterToSlaveFileCallable<PackId>() {
                     public PackId invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
                         return PackId.identifyPackage(f);
                     }
@@ -483,7 +484,7 @@ public class DeployPackagesBuilder extends Builder {
 
     }
 
-    static class DebugPackageCallable implements FilePath.FileCallable<Result> {
+    static class DebugPackageCallable extends MasterToSlaveFileCallable<Result> {
         final PackId packId;
         final BuildListener listener;
 

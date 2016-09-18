@@ -31,6 +31,7 @@ import hudson.FilePath;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
+import jenkins.MasterToSlaveFileCallable;
 import net.adamcin.granite.client.packman.*;
 
 import java.io.File;
@@ -40,7 +41,7 @@ import java.util.List;
 /**
  * Implementation of {@link hudson.FilePath.FileCallable} used by the {@link DownloadPackagesBuilder}
  */
-public class DownloadPackagesCallable implements FilePath.FileCallable<Result> {
+public class DownloadPackagesCallable extends MasterToSlaveFileCallable<Result> {
 
     private static final long serialVersionUID = 5909791609148794746L;
     protected final GraniteClientConfig clientConfig;
