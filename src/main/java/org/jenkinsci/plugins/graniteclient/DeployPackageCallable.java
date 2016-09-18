@@ -27,19 +27,24 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
-import hudson.FilePath;
+import java.io.File;
+import java.io.IOException;
+
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
-import net.adamcin.granite.client.packman.*;
-
-import java.io.File;
-import java.io.IOException;
+import jenkins.MasterToSlaveFileCallable;
+import net.adamcin.granite.client.packman.DetailedResponse;
+import net.adamcin.granite.client.packman.ListResponse;
+import net.adamcin.granite.client.packman.PackId;
+import net.adamcin.granite.client.packman.PackageManagerClient;
+import net.adamcin.granite.client.packman.ResponseProgressListener;
+import net.adamcin.granite.client.packman.SimpleResponse;
 
 /**
  * Implementation of {@link hudson.FilePath.FileCallable} used by the {@link DeployPackagesBuilder}
  */
-public final class DeployPackageCallable implements FilePath.FileCallable<Result> {
+public final class DeployPackageCallable extends MasterToSlaveFileCallable<Result> {
 
     private static final long serialVersionUID = -3235879975250741115L;
     private final GraniteClientConfig clientConfig;

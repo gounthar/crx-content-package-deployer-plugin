@@ -31,6 +31,7 @@ import hudson.FilePath;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
+import jenkins.MasterToSlaveFileCallable;
 import net.adamcin.granite.client.packman.validation.DefaultValidationOptions;
 import net.adamcin.granite.client.packman.validation.PackageValidator;
 import net.adamcin.granite.client.packman.validation.ValidationResult;
@@ -41,7 +42,7 @@ import java.io.IOException;
 /**
  * Simple callable implementation for the ValidatePackagesBuilder
  */
-public class ValidateFileCallable implements FilePath.FileCallable<Result> {
+public class ValidateFileCallable extends MasterToSlaveFileCallable<Result> {
 
     final TaskListener listener;
     final DefaultValidationOptions options;
