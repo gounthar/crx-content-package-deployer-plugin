@@ -30,7 +30,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.509.1</version><!-- which version of Jenkins is this plugin built against? -->
+        <version>1.610</version><!-- which version of Jenkins is this plugin built against? -->
     </parent>
 
     <artifactId>crx-content-package-deployer</artifactId>
@@ -100,8 +100,8 @@
           explicitly specifying the latest version here because one we get from the parent POM
           tends to lag behind a bit
         -->
-        <maven-hpi-plugin.version>1.95</maven-hpi-plugin.version>
-        <httpsig.version>1.0.4</httpsig.version>
+        <maven-hpi-plugin.version>1.119</maven-hpi-plugin.version>
+        <httpsig.version>1.2.0</httpsig.version>
         <slf4j.version>1.6.2</slf4j.version>
         <junit.version>4.10</junit.version>
     </properties>
