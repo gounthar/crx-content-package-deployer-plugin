@@ -31,12 +31,13 @@ import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.AsyncHttpClientConfig;
+import com.ning.http.client.ProxyServer;
 import hudson.Extension;
+import hudson.ProxyConfiguration;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.security.AccessControlled;
 import jenkins.model.Jenkins;
-import jenkins.plugins.asynchttpclient.AHCUtils;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.StaplerRequest;
@@ -77,7 +78,7 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
 
         this.instance = new AsyncHttpClient(
                 new AsyncHttpClientConfig.Builder()
-                        .setProxyServer(AHCUtils.getProxyServer())
+                        .setProxyServer(getProxyServer())
                         .setConnectionTimeoutInMs(this.connectionTimeoutInMs > 0 ?
                                 this.connectionTimeoutInMs : DEFAULT_TIMEOUT)
                         .setIdleConnectionTimeoutInMs(this.idleConnectionTimeoutInMs > 0 ?
@@ -95,7 +96,7 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
 
         this.instanceForValidation = new AsyncHttpClient(
                 new AsyncHttpClientConfig.Builder()
-                        .setProxyServer(AHCUtils.getProxyServer())
+                        .setProxyServer(getProxyServer())
                         .setConnectionTimeoutInMs(this.connectionTimeoutInMsForValidation > 0 ?
                                 this.connectionTimeoutInMsForValidation : DEFAULT_TIMEOUT_FOR_VALIDATION)
                         .setIdleConnectionTimeoutInMs(this.idleConnectionTimeoutInMsForValidation > 0 ?
@@ -222,5 +223,17 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
         }
 
         return new GraniteAHCFactory();
+    }
+
+    public static ProxyServer getProxyServer() {
+        ProxyServer proxyServer;
+        if(Jenkins.getInstance() != null && Jenkins.getInstance().proxy != null) {
+            ProxyConfiguration proxy = Jenkins.getInstance().proxy;
+            proxyServer = new ProxyServer(proxy.name, proxy.port, proxy.getUserName(), proxy.getPassword());
+        } else {
+            proxyServer = null;
+        }
+
+        return proxyServer;
     }
 }
