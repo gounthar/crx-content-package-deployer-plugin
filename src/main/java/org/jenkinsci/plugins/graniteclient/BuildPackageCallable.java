@@ -68,6 +68,8 @@ public class BuildPackageCallable implements FilePath.FileCallable<Result> {
 
         public Result doExecute(PackageManagerClient client) throws Exception {
             Result result = Result.SUCCESS;
+            client.setRequestTimeout(clientConfig.getRequestTimeout());
+            client.setServiceTimeout(clientConfig.getServiceTimeout());
 
             client.waitForService();
             listener.getLogger().printf(
