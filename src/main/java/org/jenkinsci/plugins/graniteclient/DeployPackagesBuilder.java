@@ -51,11 +51,12 @@ import org.kohsuke.stapler.StaplerRequest;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import javax.annotation.Nonnull;
 
 /**
  * Implementation of the "Deploy Content Packages to CRX" build step
  */
-public class DeployPackagesBuilder extends Builder {
+public class DeployPackagesBuilder extends AbstractBuildStep {
 
     private String packageIdFilters;
     private String baseUrls;
@@ -241,8 +242,8 @@ public class DeployPackagesBuilder extends Builder {
     }
 
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
-            throws InterruptedException, IOException {
+    boolean perform(@Nonnull AbstractBuild<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
+                    @Nonnull BuildListener listener) throws InterruptedException, IOException {
 
         Result result = build.getResult();
         if (result == null) {
@@ -259,7 +260,7 @@ public class DeployPackagesBuilder extends Builder {
                         new GraniteClientConfig(baseUrl, credentialsId, requestTimeout, serviceTimeout, waitDelay);
 
                 listener.getLogger().printf("Deploying packages to %s%n", clientConfig.getBaseUrl());
-                for (Map.Entry<PackId, FilePath> selectedPackage : selectPackages(build, listener).entrySet()) {
+                for (Map.Entry<PackId, FilePath> selectedPackage : selectPackages(build, workspace, listener).entrySet()) {
                     if (!result.isBetterOrEqualTo(Result.UNSTABLE)) {
                         return false;
                     }
@@ -273,7 +274,10 @@ public class DeployPackagesBuilder extends Builder {
                                 selectedPackage.getKey(), getPackageInstallOptions(), getExistingPackageBehavior());
                     }
 
-                    result = result.combine(selectedPackage.getValue().act(callable));
+                    Result actResult = selectedPackage.getValue().act(callable);
+                    if (actResult != null) {
+                        result = result.combine(actResult);
+                    }
                     build.setResult(result);
                 }
             }
@@ -282,11 +286,14 @@ public class DeployPackagesBuilder extends Builder {
         return result.isBetterOrEqualTo(Result.UNSTABLE);
     }
 
-    private Map<PackId, FilePath> selectPackages(final AbstractBuild<?, ?> build, final BuildListener listener) throws IOException, InterruptedException {
+    private Map<PackId, FilePath> selectPackages(@Nonnull final AbstractBuild<?, ?> build,
+                                                 @Nonnull final FilePath workspace,
+                                                 @Nonnull final BuildListener listener)
+            throws IOException, InterruptedException {
         Map<PackId, FilePath> found = new HashMap<PackId, FilePath>();
 
         final String fLocalDirectory = getLocalDirectory(build, listener);
-        FilePath dir = build.getWorkspace().child(fLocalDirectory);
+        FilePath dir = workspace.child(fLocalDirectory);
 
         try {
             List<FilePath> listed = new ArrayList<FilePath>();
@@ -299,7 +306,7 @@ public class DeployPackagesBuilder extends Builder {
                     new Comparator<FilePath>() {
                         public int compare(FilePath left, FilePath right) {
                             try {
-                                return Long.valueOf(left.lastModified()).compareTo(right.lastModified());
+                                return Long.compare(left.lastModified(), right.lastModified());
                             } catch (Exception e) {
                                 listener.error("Failed to compare a couple files: %s", e.getMessage());
                             }
@@ -386,11 +393,6 @@ public class DeployPackagesBuilder extends Builder {
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getBaseUrls());
         }
-        return parseBaseUrls(getBaseUrls());
-    }
-
-
-    private List<String> listBaseUrls() {
         return parseBaseUrls(getBaseUrls());
     }
 

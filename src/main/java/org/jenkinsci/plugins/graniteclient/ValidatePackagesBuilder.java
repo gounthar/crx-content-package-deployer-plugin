@@ -46,11 +46,12 @@ import org.kohsuke.stapler.QueryParameter;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import javax.annotation.Nonnull;
 
 /**
  * Implementation of the "Validate CRX Content Packages" build step
  */
-public class ValidatePackagesBuilder extends Builder {
+public class ValidatePackagesBuilder extends AbstractBuildStep {
 
     private String packageIdFilters;
     private String localDirectory;
@@ -149,8 +150,8 @@ public class ValidatePackagesBuilder extends Builder {
     }
 
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
-            throws InterruptedException, IOException {
+    boolean perform(@Nonnull AbstractBuild<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
+                    @Nonnull BuildListener listener) throws InterruptedException, IOException {
 
         Result result = build.getResult();
         if (result == null) {
@@ -160,7 +161,7 @@ public class ValidatePackagesBuilder extends Builder {
         listener.getLogger().println("Validating packages.");
 
         DefaultValidationOptions options = getValidationOptions(build, listener);
-        for (PackTuple selectedPackage : selectPackages(build, listener)) {
+        for (PackTuple selectedPackage : selectPackages(build, workspace, listener)) {
             listener.getLogger().printf("Validating package %s at path %s.%n",
                     selectedPackage.getPackId(), selectedPackage.getFilePath());
 
@@ -198,11 +199,13 @@ public class ValidatePackagesBuilder extends Builder {
         }
     }
 
-    private List<PackTuple> selectPackages(final AbstractBuild<?, ?> build, final BuildListener listener) throws IOException, InterruptedException {
+    private List<PackTuple> selectPackages(@Nonnull final AbstractBuild<?, ?> build, @Nonnull final FilePath workspace,
+                                           @Nonnull final BuildListener listener)
+            throws IOException, InterruptedException {
         List<PackTuple> found = new ArrayList<PackTuple>();
 
         final String fLocalDirectory = getLocalDirectory(build, listener);
-        FilePath dir = build.getWorkspace().child(fLocalDirectory);
+        FilePath dir = workspace.child(fLocalDirectory);
 
         try {
             List<FilePath> listed = new ArrayList<FilePath>();

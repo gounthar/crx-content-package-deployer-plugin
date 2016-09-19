@@ -109,7 +109,7 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
 
     @SuppressWarnings("unchecked")
     public Descriptor<GraniteAHCFactory> getDescriptor() {
-        return Jenkins.getInstance().getDescriptorOrDie(getClass());
+        return getFactoryDescriptor();
     }
 
     @Override
@@ -208,15 +208,24 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
     /**
      * This variation of {@link #getInstance()} returns a client which uses the validation-specific timeout settings.
      *
-     * @return
+     * @return a client configured for validation.
      */
     public AsyncHttpClient getInstanceForValidation() {
         return this.instanceForValidation;
     }
 
+    @SuppressWarnings("unchecked")
+    private static Descriptor<GraniteAHCFactory> getFactoryDescriptor() {
+        Jenkins j = Jenkins.getInstance();
+        if (j==null) {
+            throw new AssertionError(GraniteAHCFactory.class + " is missing its Jenkins");
+        }
+        return j.getDescriptorOrDie(GraniteAHCFactory.class);
+    }
+
     public static GraniteAHCFactory getFactoryInstance() {
         if (Jenkins.getInstance() != null) {
-            Descriptor descriptor = Jenkins.getInstance().getDescriptorOrDie(GraniteAHCFactory.class);
+            Descriptor descriptor = getFactoryDescriptor();
             if (descriptor instanceof GraniteAHCFactory) {
                 return (GraniteAHCFactory) descriptor;
             }
@@ -227,8 +236,9 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
 
     public static ProxyServer getProxyServer() {
         ProxyServer proxyServer;
-        if(Jenkins.getInstance() != null && Jenkins.getInstance().proxy != null) {
-            ProxyConfiguration proxy = Jenkins.getInstance().proxy;
+        Jenkins j = Jenkins.getInstance();
+        if (j != null && j.proxy != null) {
+            ProxyConfiguration proxy = j.proxy;
             proxyServer = new ProxyServer(proxy.name, proxy.port, proxy.getUserName(), proxy.getPassword());
         } else {
             proxyServer = null;

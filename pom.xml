@@ -100,9 +100,10 @@
           explicitly specifying the latest version here because one we get from the parent POM
           tends to lag behind a bit
         -->
-        <jenkins.version>1.610</jenkins.version>
+        <!--<jenkins.version>1.610</jenkins.version>-->
+        <jenkins.version>1.625.3</jenkins.version>
         <maven-hpi-plugin.version>1.119</maven-hpi-plugin.version>
-        <httpsig.version>1.2.0</httpsig.version>
+        <httpsig.version>[1.2.1,1.4.0)</httpsig.version>
         <slf4j.version>1.6.2</slf4j.version>
         <junit.version>4.10</junit.version>
     </properties>
@@ -119,9 +120,15 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>[4.5,5.0)</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>net.adamcin.granite</groupId>
             <artifactId>granite-client-packman</artifactId>
-            <version>0.7.6</version>
+            <version>[0.7.7,1.0.0)</version>
         </dependency>
         <dependency>
             <groupId>net.adamcin.httpsig</groupId>
@@ -180,7 +187,7 @@
         <dependency>
             <groupId>net.adamcin.commons</groupId>
             <artifactId>net.adamcin.commons.testing</artifactId>
-            <version>0.8.0</version>
+            <version>[0.9.0,1.0.0)</version>
             <scope>test</scope>
         </dependency>
 

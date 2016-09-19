@@ -29,6 +29,7 @@ package org.jenkinsci.plugins.graniteclient;
 
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
 import hudson.security.AccessControlled;
@@ -46,11 +47,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import javax.annotation.Nonnull;
 
 /**
  * Implementation of the "Replicate Content Packages from CRX" build step
  */
-public class ReplicatePackagesBuilder extends Builder {
+public class ReplicatePackagesBuilder extends AbstractBuildStep {
     private String packageIds;
     private String baseUrls;
     private String credentialsId;
@@ -73,8 +75,8 @@ public class ReplicatePackagesBuilder extends Builder {
     }
 
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
-            throws InterruptedException, IOException {
+    boolean perform(@Nonnull AbstractBuild<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
+                    @Nonnull BuildListener listener) throws InterruptedException, IOException {
 
         Result result = build.getResult();
         if (result == null) {
@@ -143,11 +145,6 @@ public class ReplicatePackagesBuilder extends Builder {
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getBaseUrls());
         }
-        return parseBaseUrls(getBaseUrls());
-    }
-
-
-    private List<String> listBaseUrls() {
         return parseBaseUrls(getBaseUrls());
     }
 

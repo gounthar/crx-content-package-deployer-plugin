@@ -29,6 +29,7 @@ package org.jenkinsci.plugins.graniteclient;
 
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
 import hudson.security.AccessControlled;
@@ -46,11 +47,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import javax.annotation.Nonnull;
 
 /**
  * Implementation of the "Download Content Packages from CRX" build step
  */
-public class DownloadPackagesBuilder extends Builder {
+public class DownloadPackagesBuilder extends AbstractBuildStep {
     private String packageIds;
     private String baseUrl;
     private String credentialsId;
@@ -78,8 +80,8 @@ public class DownloadPackagesBuilder extends Builder {
     }
 
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
-            throws InterruptedException, IOException {
+    boolean perform(@Nonnull AbstractBuild<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
+                    @Nonnull BuildListener listener) throws InterruptedException, IOException {
 
         Result result = build.getResult();
         if (result == null) {
@@ -94,7 +96,11 @@ public class DownloadPackagesBuilder extends Builder {
                                                                        ignoreErrors, rebuild);
 
         final String fLocalDirectory = getLocalDirectory(build, listener);
-        result = result.combine(build.getWorkspace().child(fLocalDirectory).act(callable));
+        final Result actResult = workspace.child(fLocalDirectory).act(callable);
+
+        if (actResult != null) {
+            result = result.combine(actResult);
+        }
 
         return result.isBetterOrEqualTo(Result.UNSTABLE);
     }

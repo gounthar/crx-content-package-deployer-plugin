@@ -28,7 +28,9 @@
 package org.jenkinsci.plugins.graniteclient;
 
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
+import hudson.AbortException;
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
 import hudson.security.AccessControlled;
@@ -44,11 +46,12 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
 import java.io.IOException;
+import javax.annotation.Nonnull;
 
 /**
  * Implementation of the "Build a Content Package on CRX" build step
  */
-public class BuildPackageBuilder extends Builder {
+public class BuildPackageBuilder extends AbstractBuildStep {
     private String packageId;
     private String baseUrl;
     private String credentialsId;
@@ -75,12 +78,13 @@ public class BuildPackageBuilder extends Builder {
     }
 
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
-            throws InterruptedException, IOException {
+    boolean perform(@Nonnull AbstractBuild<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
+                    @Nonnull BuildListener listener) throws InterruptedException, IOException {
 
-        Result result = build.getResult();
-        if (result == null) {
-            result = Result.SUCCESS;
+        Result result = Result.SUCCESS;
+        Result buildResult = build.getResult();
+        if (buildResult != null) {
+            result = buildResult;
         }
 
         String packIdString = getPackageId(build, listener);
@@ -100,7 +104,11 @@ public class BuildPackageBuilder extends Builder {
                 new BuildPackageCallable(clientConfig, listener, packId, filter, download);
 
         final String fLocalDirectory = getLocalDirectory(build, listener);
-        result = result.combine(build.getWorkspace().child(fLocalDirectory).act(callable));
+
+        Result actResult = workspace.child(fLocalDirectory).act(callable);
+        if (actResult != null) {
+            result = result.combine(actResult);
+        }
 
         return result.isBetterOrEqualTo(Result.UNSTABLE);
     }

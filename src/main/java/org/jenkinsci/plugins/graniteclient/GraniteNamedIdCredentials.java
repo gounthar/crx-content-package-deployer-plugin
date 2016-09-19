@@ -268,8 +268,9 @@ abstract class GraniteNamedIdCredentials implements IdCredentials {
         try {
             char[] passphrase = null;
 
-            if (creds.getPassphrase() != null) {
-                passphrase = creds.getPassphrase().getEncryptedValue().toCharArray();
+            Secret cPPhrase = creds.getPassphrase();
+            if (cPPhrase != null) {
+                passphrase = cPPhrase.getEncryptedValue().toCharArray();
             }
 
             return PEMUtil.readKey(creds.getPrivateKey().getBytes(Charset.forName("UTF-8")), passphrase);
