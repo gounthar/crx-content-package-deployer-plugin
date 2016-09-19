@@ -30,7 +30,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.610</version><!-- which version of Jenkins is this plugin built against? -->
+        <version>2.6</version><!-- which version of Jenkins is this plugin built against? -->
     </parent>
 
     <artifactId>crx-content-package-deployer</artifactId>
@@ -57,8 +57,8 @@
             <name>Mark Adamcin</name>
             <email>adamcin@gmail.com</email>
             <url>http://adamcin.net</url>
-            <organization>Mashery</organization>
-            <organizationUrl>http://www.mashery.com</organizationUrl>
+            <organization>Infield Digital</organization>
+            <organizationUrl>https://www.infielddigital.com</organizationUrl>
             <roles>
                 <role>architect</role>
                 <role>developer</role>
@@ -100,6 +100,7 @@
           explicitly specifying the latest version here because one we get from the parent POM
           tends to lag behind a bit
         -->
+        <jenkins.version>1.610</jenkins.version>
         <maven-hpi-plugin.version>1.119</maven-hpi-plugin.version>
         <httpsig.version>1.2.0</httpsig.version>
         <slf4j.version>1.6.2</slf4j.version>
