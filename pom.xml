@@ -96,12 +96,12 @@
     <properties>
         <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jenkins.version>1.610</jenkins.version>
+        <!--<jenkins.version>1.625.3</jenkins.version>-->
         <!--
           explicitly specifying the latest version here because one we get from the parent POM
           tends to lag behind a bit
         -->
-        <!--<jenkins.version>1.610</jenkins.version>-->
-        <jenkins.version>1.625.3</jenkins.version>
         <maven-hpi-plugin.version>1.119</maven-hpi-plugin.version>
         <httpsig.version>[1.2.1,1.4.0)</httpsig.version>
         <slf4j.version>1.6.2</slf4j.version>
