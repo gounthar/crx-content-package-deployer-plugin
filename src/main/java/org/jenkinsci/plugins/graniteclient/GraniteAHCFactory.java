@@ -50,6 +50,7 @@ import org.kohsuke.stapler.StaplerRequest;
 @Extension
 public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> implements Describable<GraniteAHCFactory>, Serializable {
 
+    private static final long serialVersionUID = 1329103722879551699L;
     private static final int DEFAULT_TIMEOUT = 60000;
     private static final int DEFAULT_TIMEOUT_FOR_VALIDATION = 10000;
 
