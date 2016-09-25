@@ -19,6 +19,7 @@ lib/
 
 */crx-quickstart/
 work/
+work_slave/
 
 .classpath
 .project
