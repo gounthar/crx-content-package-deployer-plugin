@@ -27,6 +27,8 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import java.io.Serializable;
+
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import com.ning.http.client.AsyncHttpClient;
@@ -46,7 +48,7 @@ import org.kohsuke.stapler.StaplerRequest;
  * Global extension and configurable factory for {@link AsyncHttpClient} instances
  */
 @Extension
-public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> implements Describable<GraniteAHCFactory> {
+public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> implements Describable<GraniteAHCFactory>, Serializable {
 
     private static final int DEFAULT_TIMEOUT = 60000;
     private static final int DEFAULT_TIMEOUT_FOR_VALIDATION = 10000;
@@ -64,8 +66,14 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
     private transient AsyncHttpClient instanceForValidation;
 
     public GraniteAHCFactory() {
+        this(true);
+    }
+
+    public GraniteAHCFactory(boolean loadDescriptor) {
         super(GraniteAHCFactory.class);
-        load();
+        if (loadDescriptor) {
+            load();
+        }
         this.resetClients();
     }
 
@@ -231,7 +239,7 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
             }
         }
 
-        return new GraniteAHCFactory();
+        return new GraniteAHCFactory(false);
     }
 
     public static ProxyServer getProxyServer() {

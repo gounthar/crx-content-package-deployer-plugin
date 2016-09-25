@@ -44,6 +44,7 @@ import net.adamcin.httpsig.ssh.jce.UserKeysFingerprintKeyId;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
@@ -220,6 +221,12 @@ abstract class GraniteNamedIdCredentials implements IdCredentials {
             }
             this.username = username;
             this.wrapped = wrapped;
+        }
+
+        @NonNull
+        @Override
+        public List<String> getPrivateKeys() {
+            return wrapped.getPrivateKeys();
         }
 
         @NonNull

@@ -36,6 +36,7 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import jenkins.MasterToSlaveFileCallable;
+import jenkins.SlaveToMasterFileCallable;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.WspFilter;
 import net.adamcin.granite.client.packman.validation.DefaultValidationOptions;
@@ -215,11 +216,7 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
             for (FilePath path : listed) {
                 PackId packId = null;
                 try {
-                    packId = path.act(new MasterToSlaveFileCallable<PackId>() {
-                        public PackId invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
-                            return PackId.identifyPackage(f);
-                        }
-                    });
+                    packId = path.act(new IdentifyPackageCallable());
                 } catch (Exception e) {
                     listener.error("Failed to identify package file: %s", e.getMessage());
                 }

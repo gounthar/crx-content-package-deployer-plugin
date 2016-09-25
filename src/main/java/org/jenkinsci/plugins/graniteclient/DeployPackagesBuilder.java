@@ -316,11 +316,7 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
             ));
 
             for (FilePath path : listed) {
-                PackId packId = path.act(new MasterToSlaveFileCallable<PackId>() {
-                    public PackId invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
-                        return PackId.identifyPackage(f);
-                    }
-                });
+                PackId packId = path.act(new IdentifyPackageCallable());
 
                 if (packId != null && !found.containsKey(packId)) {
                     found.put(packId, path);
