@@ -28,10 +28,12 @@
 package org.jenkinsci.plugins.graniteclient;
 
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
+import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import com.cloudbees.plugins.credentials.common.IdCredentials;
+import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
@@ -49,7 +51,7 @@ import java.util.List;
  */
 public class GraniteCredentialsListBoxModel extends AbstractIdCredentialsListBoxModel<GraniteCredentialsListBoxModel, IdCredentials> {
 
-    private static final long serialVersionUID = 6621529150670191089L;
+    private static final long serialVersionUID = 6621529150670191090L;
 
     @NonNull
     @Override
@@ -61,24 +63,25 @@ public class GraniteCredentialsListBoxModel extends AbstractIdCredentialsListBox
         }
     }
 
-    public static AbstractIdCredentialsListBoxModel fillItems(final AccessControlled context) {
-        return fillItems(context, Collections.<DomainRequirement>emptyList());
+    public static AbstractIdCredentialsListBoxModel fillItems(final String currentValue, final AccessControlled context) {
+        return fillItems(currentValue, context, Collections.<DomainRequirement>emptyList());
     }
 
-    public static AbstractIdCredentialsListBoxModel fillItems(final AccessControlled context, final String baseUrl) {
+    public static AbstractIdCredentialsListBoxModel fillItems(final String currentValue, final AccessControlled context, final String baseUrl) {
         if (baseUrl != null) {
-            return fillItems(context, URIRequirementBuilder.fromUri(baseUrl).build());
+            return fillItems(currentValue, context, URIRequirementBuilder.fromUri(baseUrl).build());
         } else {
-            return fillItems(context);
+            return fillItems(currentValue, context);
         }
     }
 
-    private static AbstractIdCredentialsListBoxModel fillItems(final AccessControlled context, final List<DomainRequirement> reqs) {
+    private static AbstractIdCredentialsListBoxModel fillItems(final String currentValue, final AccessControlled context, final List<DomainRequirement> reqs) {
         AbstractIdCredentialsListBoxModel<GraniteCredentialsListBoxModel, IdCredentials> model =
                 new GraniteCredentialsListBoxModel().withEmptySelection();
 
         if (context == null || !context.hasPermission(Item.CONFIGURE)) {
-            return model;
+            Credentials _credentials = GraniteNamedIdCredentials.getCredentialsById(currentValue);
+            return model.with(GraniteNamedIdCredentials.maybeWrap(_credentials));
         }
 
         List<SSHUserPrivateKey> keys = CredentialsProvider.lookupCredentials(SSHUserPrivateKey.class,

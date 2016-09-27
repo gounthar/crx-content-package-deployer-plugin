@@ -38,7 +38,7 @@
     <packaging>hpi</packaging>
 
     <name>CRX Content Package Deployer Plugin</name>
-    <description>Deploys content packages to Adobe Granite applications, like Adobe CQ 5.4, CQ 5.5, and AEM 5.6</description>
+    <description>Deploys content packages to Adobe Granite applications, like Adobe CQ/AEM</description>
 
     <inceptionYear>2013</inceptionYear>
 
@@ -147,7 +147,7 @@
         </dependency>
         <dependency>
             <groupId>net.adamcin.httpsig</groupId>
-            <artifactId>httpsig-ssh-bc</artifactId>
+            <artifactId>httpsig-ssh-jce</artifactId>
             <version>${httpsig.version}</version>
         </dependency>
 
@@ -165,6 +165,12 @@
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>credentials</artifactId>
             <version>1.17</version>
+            <!--<version>2.1.4</version>-->
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>bouncycastle-api</artifactId>
+            <version>[1.0.3,)</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>

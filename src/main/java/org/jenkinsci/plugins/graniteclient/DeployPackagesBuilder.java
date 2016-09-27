@@ -52,6 +52,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
+
+import static org.jenkinsci.plugins.graniteclient.BaseUrlUtil.parseBaseUrls;
 
 /**
  * Implementation of the "Deploy Content Packages to CRX" build step
@@ -392,15 +395,6 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         return parseBaseUrls(getBaseUrls());
     }
 
-    private static List<String> parseBaseUrls(String value) {
-         List<String> _baseUrls = new ArrayList<String>();
-        for (String url : value.split("(\\r)?\\n")) {
-            if (url.trim().length() > 0) {
-                _baseUrls.add(url);
-            }
-        }
-        return Collections.unmodifiableList(_baseUrls);
-    }
 
     private String getLocalDirectory(AbstractBuild<?, ?> build, TaskListener listener) {
         try {
@@ -440,30 +434,25 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
             return true;
         }
 
-        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context, @QueryParameter String baseUrls) {
+        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context,
+                                                                          @QueryParameter("baseUrls") String baseUrls,
+                                                                          @QueryParameter("value") String value) {
             List<String> _baseUrls = parseBaseUrls(baseUrls);
 
-            if (_baseUrls != null && !_baseUrls.isEmpty()) {
-                return GraniteCredentialsListBoxModel.fillItems(context, _baseUrls.iterator().next());
+            if (!_baseUrls.isEmpty()) {
+                return GraniteCredentialsListBoxModel.fillItems(value, context, _baseUrls.iterator().next());
             } else {
-                return GraniteCredentialsListBoxModel.fillItems(context);
+                return GraniteCredentialsListBoxModel.fillItems(value, context);
             }
         }
 
-        public FormValidation doCheckBaseUrls(@QueryParameter String value, @QueryParameter String credentialsId,
-                                              @QueryParameter long requestTimeout, @QueryParameter long serviceTimeout) {
-            for (String baseUrl : parseBaseUrls(value)) {
-                try {
-                    GraniteClientConfig config =
-                            new GraniteClientConfig(baseUrl, credentialsId, requestTimeout, serviceTimeout);
-                    if (!GraniteClientExecutor.validateBaseUrl(config)) {
-                        return FormValidation.error("Failed to login to " + config.getBaseUrl() + " as " + config.getUsername());
-                    }
-                } catch (IOException e) {
-                    return FormValidation.error(e.getCause(), e.getMessage());
-                }
-            }
-            return FormValidation.ok();
+        public FormValidation doTestConnection(@QueryParameter("baseUrls") final String baseUrls,
+                                               @QueryParameter("credentialsId") final String credentialsId,
+                                               @QueryParameter("requestTimeout") final long requestTimeout,
+                                               @QueryParameter("serviceTimeout") final long serviceTimeout)
+                throws IOException, ServletException {
+
+            return BaseUrlUtil.testManyConnections(baseUrls, credentialsId, requestTimeout, serviceTimeout);
         }
 
         public ListBoxModel doFillAcHandlingItems() {

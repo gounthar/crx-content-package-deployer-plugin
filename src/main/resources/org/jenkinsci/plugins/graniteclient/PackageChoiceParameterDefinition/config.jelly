@@ -71,6 +71,10 @@
             <creds:select />
         </f:entry>
 
+        <f:validateButton
+           title="${%Test Connection}" progress="${%Testing...}"
+           method="testConnection" with="baseUrl,credentialsId,requestTimeout,serviceTimeout" />
+
         <f:entry title="Request Timeout" field="requestTimeout">
             <f:number default="0"/>
         </f:entry>

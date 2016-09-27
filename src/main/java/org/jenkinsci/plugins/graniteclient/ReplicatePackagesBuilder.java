@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
 
 /**
  * Implementation of the "Replicate Content Packages from CRX" build step
@@ -63,8 +64,8 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
 
     @DataBoundConstructor
     public ReplicatePackagesBuilder(String packageIds, String baseUrls, String credentialsId,
-                                   long requestTimeout, long serviceTimeout, long waitDelay,
-                                   boolean ignoreErrors) {
+                                    long requestTimeout, long serviceTimeout, long waitDelay,
+                                    boolean ignoreErrors) {
         this.packageIds = packageIds;
         this.baseUrls = baseUrls;
         this.credentialsId = credentialsId;
@@ -83,29 +84,29 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
             result = Result.SUCCESS;
         }
 
-		for (String baseUrl : listBaseUrls(build, listener)) {
-			if (result.isBetterOrEqualTo(Result.UNSTABLE)) {
-				GraniteClientConfig clientConfig = new GraniteClientConfig(
-						baseUrl, credentialsId, requestTimeout, serviceTimeout, waitDelay);
+        for (String baseUrl : listBaseUrls(build, listener)) {
+            if (result.isBetterOrEqualTo(Result.UNSTABLE)) {
+                GraniteClientConfig clientConfig = new GraniteClientConfig(
+                        baseUrl, credentialsId, requestTimeout, serviceTimeout, waitDelay);
 
-				ReplicatePackagesClientCallable callable = new ReplicatePackagesClientCallable(
-						listener, listPackIds(build, listener), ignoreErrors);
+                ReplicatePackagesClientCallable callable = new ReplicatePackagesClientCallable(
+                        listener, listPackIds(build, listener), ignoreErrors);
 
-				try {
-					result = result.combine(GraniteClientExecutor.execute(
-							callable, clientConfig, listener));
-				} catch (Exception e) {
-					e.printStackTrace(listener.fatalError(
-							"Failed to replicate packages.", e.getMessage()));
-					if (ignoreErrors) {
-						result = result.combine(Result.UNSTABLE);
-					} else {
-						result = result.combine(Result.FAILURE);
-					}
-				}
-			}
-		}
-        
+                try {
+                    result = result.combine(GraniteClientExecutor.execute(
+                            callable, clientConfig, listener));
+                } catch (Exception e) {
+                    e.printStackTrace(listener.fatalError(
+                            "Failed to replicate packages.", e.getMessage()));
+                    if (ignoreErrors) {
+                        result = result.combine(Result.UNSTABLE);
+                    } else {
+                        result = result.combine(Result.FAILURE);
+                    }
+                }
+            }
+        }
+
         return result.isBetterOrEqualTo(Result.UNSTABLE);
     }
 
@@ -125,7 +126,7 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
             return getPackageIds();
         }
     }
-    
+
     public String getBaseUrls() {
         //return baseUrls;
         if (baseUrls != null) {
@@ -138,7 +139,7 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
     public void setBaseUrls(String baseUrls) {
         this.baseUrls = baseUrls;
     }
-    
+
     private List<String> listBaseUrls(AbstractBuild<?, ?> build, TaskListener listener) {
         try {
             return parseBaseUrls(TokenMacro.expandAll(build, listener, getBaseUrls()));
@@ -149,7 +150,7 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
     }
 
     private static List<String> parseBaseUrls(String value) {
-         List<String> _baseUrls = new ArrayList<String>();
+        List<String> _baseUrls = new ArrayList<String>();
         for (String url : value.split("(\\r)?\\n")) {
             if (url.trim().length() > 0) {
                 _baseUrls.add(url);
@@ -223,33 +224,26 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
             return true;
         }
 
-        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context, @QueryParameter String baseUrls) {
+        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context,
+                                                                          @QueryParameter("baseUrls") String baseUrls,
+                                                                          @QueryParameter("value") String value) {
             List<String> _baseUrls = parseBaseUrls(baseUrls);
 
-            if (_baseUrls != null && !_baseUrls.isEmpty()) {
-                return GraniteCredentialsListBoxModel.fillItems(context, _baseUrls.iterator().next());
+            if (!_baseUrls.isEmpty()) {
+                return GraniteCredentialsListBoxModel.fillItems(value, context, _baseUrls.iterator().next());
             } else {
-                return GraniteCredentialsListBoxModel.fillItems(context);
+                return GraniteCredentialsListBoxModel.fillItems(value, context);
             }
         }
 
-		public FormValidation doCheckBaseUrls(@QueryParameter String value,
-				@QueryParameter String credentialsId,
-				@QueryParameter long requestTimeout,
-				@QueryParameter long serviceTimeout) {
-			for (String baseUrl : parseBaseUrls(value)) {
-				try {
-                    GraniteClientConfig config =
-                            new GraniteClientConfig(baseUrl, credentialsId, requestTimeout, serviceTimeout);
-					if (!GraniteClientExecutor.validateBaseUrl(config)) {
-                        return FormValidation.error("Failed to login to " + config.getBaseUrl() + " as " + config.getUsername());
-					}
-				} catch (IOException e) {
-					return FormValidation.error(e.getCause(), e.getMessage());
-				}
-			}
-			return FormValidation.ok();
-		}
+        public FormValidation doTestConnection(@QueryParameter("baseUrls") final String baseUrls,
+                                               @QueryParameter("credentialsId") final String credentialsId,
+                                               @QueryParameter("requestTimeout") final long requestTimeout,
+                                               @QueryParameter("serviceTimeout") final long serviceTimeout)
+                throws IOException, ServletException {
+
+            return BaseUrlUtil.testManyConnections(baseUrls, credentialsId, requestTimeout, serviceTimeout);
+        }
 
         @Override
         public String getDisplayName() {

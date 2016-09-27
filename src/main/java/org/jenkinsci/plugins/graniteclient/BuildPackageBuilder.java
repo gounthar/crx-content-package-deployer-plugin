@@ -47,6 +47,7 @@ import org.kohsuke.stapler.QueryParameter;
 
 import java.io.IOException;
 import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
 
 /**
  * Implementation of the "Build a Content Package on CRX" build step
@@ -241,23 +242,21 @@ public class BuildPackageBuilder extends AbstractBuildStep {
             return true;
         }
 
-        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context, @QueryParameter String baseUrl) {
-            return GraniteCredentialsListBoxModel.fillItems(context, baseUrl);
+        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context,
+                                                                          @QueryParameter("baseUrl") String baseUrl,
+                                                                          @QueryParameter("value") String value) {
+            return GraniteCredentialsListBoxModel.fillItems(value, context, baseUrl);
         }
 
-        public FormValidation doCheckBaseUrl(@QueryParameter String value, @QueryParameter String credentialsId,
-                                             @QueryParameter long requestTimeout, @QueryParameter long serviceTimeout) {
-            try {
-                GraniteClientConfig config =
-                        new GraniteClientConfig(value, credentialsId, requestTimeout, serviceTimeout);
-                if (!GraniteClientExecutor.validateBaseUrl(config)) {
-                    return FormValidation.error("Failed to login to " + config.getBaseUrl() + " as " + config.getUsername());
-                }
-                return FormValidation.ok();
-            } catch (IOException e) {
-                return FormValidation.error(e.getCause(), e.getMessage());
-            }
+        public FormValidation doTestConnection(@QueryParameter("baseUrl") final String baseUrl,
+                                               @QueryParameter("credentialsId") final String credentialsId,
+                                               @QueryParameter("requestTimeout") final long requestTimeout,
+                                               @QueryParameter("serviceTimeout") final long serviceTimeout)
+                throws IOException, ServletException {
+
+            return BaseUrlUtil.testOneConnection(baseUrl, credentialsId, requestTimeout, serviceTimeout);
         }
+
 
         public FormValidation doCheckWspFilter(@QueryParameter String value) {
             try {

@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
 
 /**
  * Implementation of the "Download Content Packages from CRX" build step
@@ -92,8 +93,8 @@ public class DownloadPackagesBuilder extends AbstractBuildStep {
                 getBaseUrl(build, listener), credentialsId, requestTimeout, serviceTimeout, waitDelay);
 
         DownloadPackagesCallable callable = new DownloadPackagesCallable(clientConfig, listener,
-                                                                       listPackIds(build, listener),
-                                                                       ignoreErrors, rebuild);
+                listPackIds(build, listener),
+                ignoreErrors, rebuild);
 
         final String fLocalDirectory = getLocalDirectory(build, listener);
         final Result actResult = workspace.child(fLocalDirectory).act(callable);
@@ -237,23 +238,21 @@ public class DownloadPackagesBuilder extends AbstractBuildStep {
             return true;
         }
 
-        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context, @QueryParameter String baseUrl) {
-            return GraniteCredentialsListBoxModel.fillItems(context, baseUrl);
+        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context,
+                                                                          @QueryParameter("baseUrl") String baseUrl,
+                                                                          @QueryParameter("value") String value) {
+            return GraniteCredentialsListBoxModel.fillItems(value, context, baseUrl);
         }
 
-        public FormValidation doCheckBaseUrl(@QueryParameter String value, @QueryParameter String credentialsId,
-                                             @QueryParameter long requestTimeout, @QueryParameter long serviceTimeout) {
-            try {
-                GraniteClientConfig config =
-                        new GraniteClientConfig(value, credentialsId, requestTimeout, serviceTimeout);
-                if (!GraniteClientExecutor.validateBaseUrl(config)) {
-                    return FormValidation.error("Failed to login to " + config.getBaseUrl() + " as " + config.getUsername());
-                }
-                return FormValidation.ok();
-            } catch (IOException e) {
-                return FormValidation.error(e.getCause(), e.getMessage());
-            }
+        public FormValidation doTestConnection(@QueryParameter("baseUrl") final String baseUrl,
+                                               @QueryParameter("credentialsId") final String credentialsId,
+                                               @QueryParameter("requestTimeout") final long requestTimeout,
+                                               @QueryParameter("serviceTimeout") final long serviceTimeout)
+                throws IOException, ServletException {
+
+            return BaseUrlUtil.testOneConnection(baseUrl, credentialsId, requestTimeout, serviceTimeout);
         }
+
 
         @Override
         public String getDisplayName() {

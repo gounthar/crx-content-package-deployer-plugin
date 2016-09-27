@@ -42,6 +42,7 @@ import hudson.security.AccessControlled;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
 /**
@@ -198,8 +199,9 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
         return "CRX Content Package Deployer - HTTP Client";
     }
 
-    public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context) {
-        return GraniteCredentialsListBoxModel.fillItems(context);
+    public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context,
+                                                                      @QueryParameter("value") String value) {
+        return GraniteCredentialsListBoxModel.fillItems(value, context);
     }
 
     public Credentials getDefaultCredentials() {

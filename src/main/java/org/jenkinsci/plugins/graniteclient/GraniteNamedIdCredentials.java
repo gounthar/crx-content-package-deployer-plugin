@@ -27,8 +27,25 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import java.io.IOException;
+import java.security.KeyPair;
+import java.security.UnrecoverableKeyException;
+import java.security.interfaces.DSAPrivateKey;
+import java.security.interfaces.DSAPublicKey;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Collections;
+import java.util.List;
+import java.util.logging.Logger;
+import javax.annotation.CheckForNull;
+
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
-import com.cloudbees.plugins.credentials.*;
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsDescriptor;
+import com.cloudbees.plugins.credentials.CredentialsMatcher;
+import com.cloudbees.plugins.credentials.CredentialsNameProvider;
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainCredentials;
@@ -36,18 +53,13 @@ import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.util.Secret;
+import jenkins.bouncycastle.api.PEMEncodable;
 import jenkins.model.Jenkins;
 import net.adamcin.httpsig.api.Key;
 import net.adamcin.httpsig.api.KeyId;
-import net.adamcin.httpsig.ssh.bc.PEMUtil;
+import net.adamcin.httpsig.ssh.jce.KeyFormat;
+import net.adamcin.httpsig.ssh.jce.SSHKey;
 import net.adamcin.httpsig.ssh.jce.UserKeysFingerprintKeyId;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * Wrapper for {@link SSHUserPrivateKey} credentials implementing {@link IdCredentials} for selection widgets
@@ -57,6 +69,7 @@ abstract class GraniteNamedIdCredentials implements IdCredentials {
 
     private static final long serialVersionUID = -7611025520557823267L;
 
+    @CheckForNull
     public static Credentials getCredentialsById(String credentialsId) {
         if (sanityCheck()) {
             if (credentialsId != null) {
@@ -133,7 +146,7 @@ abstract class GraniteNamedIdCredentials implements IdCredentials {
 
             KeyId keyId = new UserKeysFingerprintKeyId(wrapped.getUsername());
             StringBuilder nameBuilder = new StringBuilder("[Signature] ").append(keyId.getId(key));
-            if (wrapped.getDescription() != null && !wrapped.getDescription().trim().isEmpty()) {
+            if (!wrapped.getDescription().trim().isEmpty()) {
                 nameBuilder.append(" (").append(wrapped.getDescription()).append(")");
             }
 
@@ -244,12 +257,24 @@ abstract class GraniteNamedIdCredentials implements IdCredentials {
         }
     }
 
+    @NonNull
     public static GraniteNamedIdCredentials wrap(final SSHUserPrivateKey creds) {
         return new SSHPrivateKeyNamedIdCredentials(creds);
     }
 
+    @NonNull
     public static GraniteNamedIdCredentials wrap(final StandardUsernamePasswordCredentials creds) {
         return new UserPassNamedIdCredentials(creds);
+    }
+
+    @CheckForNull
+    public static GraniteNamedIdCredentials maybeWrap(@CheckForNull final Credentials creds) {
+        if (creds instanceof StandardUsernamePasswordCredentials) {
+            return wrap((StandardUsernamePasswordCredentials) creds);
+        } else if (creds instanceof SSHUserPrivateKey) {
+            return wrap((SSHUserPrivateKey) creds);
+        }
+        return null;
     }
 
     private static class CredentialsIdMatcher implements CredentialsMatcher {
@@ -280,7 +305,20 @@ abstract class GraniteNamedIdCredentials implements IdCredentials {
                 passphrase = cPPhrase.getEncryptedValue().toCharArray();
             }
 
-            return PEMUtil.readKey(creds.getPrivateKey().getBytes(Charset.forName("UTF-8")), passphrase);
+            PEMEncodable enc = PEMEncodable.decode(creds.getPrivateKey(), passphrase);
+            KeyPair keyPair = enc.toKeyPair();
+
+            if (keyPair != null) {
+                if (keyPair.getPrivate() instanceof RSAPrivateKey || keyPair.getPublic() instanceof RSAPublicKey) {
+                    return new SSHKey(KeyFormat.SSH_RSA, keyPair);
+                } else if (keyPair.getPrivate() instanceof DSAPrivateKey || keyPair.getPublic() instanceof DSAPublicKey) {
+                    return new SSHKey(KeyFormat.SSH_DSS, keyPair);
+                }
+            }
+
+            return null;
+        } catch (UnrecoverableKeyException e) {
+            LOGGER.severe("[getKeyFromCredentials] failed to decode key from SSHUserPrivateKey: " + e.getMessage());
         } catch (IOException e) {
             LOGGER.severe("[getKeyFromCredentials] failed to read key from SSHUserPrivateKey: " + e.getMessage());
         }
