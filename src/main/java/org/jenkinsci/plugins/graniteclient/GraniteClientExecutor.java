@@ -38,6 +38,7 @@ import hudson.util.LogTaskListener;
 import net.adamcin.granite.client.packman.async.AsyncPackageManagerClient;
 import net.adamcin.httpsig.api.Key;
 import net.adamcin.httpsig.api.KeyId;
+import net.adamcin.httpsig.api.Keychain;
 import net.adamcin.httpsig.api.Signer;
 import net.adamcin.httpsig.http.ning.AsyncUtil;
 import net.adamcin.httpsig.ssh.jce.UserKeysFingerprintKeyId;
@@ -109,13 +110,13 @@ public final class GraniteClientExecutor {
     private static boolean doLoginSignature(AsyncPackageManagerClient client, SSHUserPrivateKey key,
                                             final TaskListener listener) throws IOException {
 
-        Key sshkey = GraniteNamedIdCredentials.getKeyFromCredentials(key);
-        if (sshkey == null) {
+        Keychain sshkeys = GraniteNamedIdCredentials.getKeychainFromCredentials(key);
+        if (sshkeys.isEmpty()) {
             return false;
         }
 
         KeyId keyId = new UserKeysFingerprintKeyId(key.getUsername());
-        Signer signer = new Signer(sshkey, keyId);
+        Signer signer = new Signer(sshkeys, keyId);
         Future<Boolean> fResponse = AsyncUtil.login(
                 client.getClient(),
                 signer, client.getClient().prepareGet(

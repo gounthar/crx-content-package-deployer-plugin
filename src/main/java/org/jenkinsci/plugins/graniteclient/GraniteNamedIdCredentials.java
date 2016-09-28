@@ -34,6 +34,7 @@ import java.security.interfaces.DSAPrivateKey;
 import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
@@ -55,8 +56,10 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.util.Secret;
 import jenkins.bouncycastle.api.PEMEncodable;
 import jenkins.model.Jenkins;
+import net.adamcin.httpsig.api.DefaultKeychain;
 import net.adamcin.httpsig.api.Key;
 import net.adamcin.httpsig.api.KeyId;
+import net.adamcin.httpsig.api.Keychain;
 import net.adamcin.httpsig.ssh.jce.KeyFormat;
 import net.adamcin.httpsig.ssh.jce.SSHKey;
 import net.adamcin.httpsig.ssh.jce.UserKeysFingerprintKeyId;
@@ -138,14 +141,14 @@ abstract class GraniteNamedIdCredentials implements IdCredentials {
         }
 
         public String getName() {
-            Key key = getKeyFromCredentials(wrapped);
+            Keychain keychain = getKeychainFromCredentials(wrapped);
 
-            if (key == null) {
+            if (keychain.isEmpty()) {
                 return "[Signature] <failed to read SSH key> " + getId();
             }
 
             KeyId keyId = new UserKeysFingerprintKeyId(wrapped.getUsername());
-            StringBuilder nameBuilder = new StringBuilder("[Signature] ").append(keyId.getId(key));
+            StringBuilder nameBuilder = new StringBuilder("[Signature] ").append(keyId.getId(keychain.currentKey()));
             if (!wrapped.getDescription().trim().isEmpty()) {
                 nameBuilder.append(" (").append(wrapped.getDescription()).append(")");
             }
@@ -296,31 +299,50 @@ abstract class GraniteNamedIdCredentials implements IdCredentials {
         }
     }
 
-    public static Key getKeyFromCredentials(SSHUserPrivateKey creds) {
-        try {
-            char[] passphrase = null;
+    public static Keychain getKeychainFromCredentials(@CheckForNull SSHUserPrivateKey creds) {
+        List<Key> keys = new ArrayList<>();
+        if (creds == null) {
+            return new DefaultKeychain(keys);
+        }
 
-            Secret cPPhrase = creds.getPassphrase();
-            if (cPPhrase != null) {
-                passphrase = cPPhrase.getEncryptedValue().toCharArray();
-            }
+        char[] passphrase = null;
 
-            PEMEncodable enc = PEMEncodable.decode(creds.getPrivateKey(), passphrase);
-            KeyPair keyPair = enc.toKeyPair();
+        Secret cPPhrase = creds.getPassphrase();
+        if (cPPhrase != null) {
+            passphrase = cPPhrase.getEncryptedValue().toCharArray();
+        }
 
-            if (keyPair != null) {
-                if (keyPair.getPrivate() instanceof RSAPrivateKey || keyPair.getPublic() instanceof RSAPublicKey) {
-                    return new SSHKey(KeyFormat.SSH_RSA, keyPair);
-                } else if (keyPair.getPrivate() instanceof DSAPrivateKey || keyPair.getPublic() instanceof DSAPublicKey) {
-                    return new SSHKey(KeyFormat.SSH_DSS, keyPair);
+        for (String pk : creds.getPrivateKeys()) {
+            try {
+                PEMEncodable enc = PEMEncodable.decode(pk, passphrase);
+                KeyPair keyPair = enc.toKeyPair();
+
+                if (keyPair != null) {
+                    if (keyPair.getPrivate() instanceof RSAPrivateKey
+                            || keyPair.getPublic() instanceof RSAPublicKey) {
+                        keys.add(new SSHKey(KeyFormat.SSH_RSA, keyPair));
+                    } else if (keyPair.getPrivate() instanceof DSAPrivateKey
+                            || keyPair.getPublic() instanceof DSAPublicKey) {
+                        keys.add(new SSHKey(KeyFormat.SSH_DSS, keyPair));
+                    }
                 }
+            } catch (UnrecoverableKeyException e) {
+                LOGGER.severe("[getKeyFromCredentials] failed to decode key from SSHUserPrivateKey: " + e.getMessage());
+            } catch (IOException e) {
+                LOGGER.severe("[getKeyFromCredentials] failed to read key from SSHUserPrivateKey: " + e.getMessage());
             }
+        }
 
-            return null;
-        } catch (UnrecoverableKeyException e) {
-            LOGGER.severe("[getKeyFromCredentials] failed to decode key from SSHUserPrivateKey: " + e.getMessage());
-        } catch (IOException e) {
-            LOGGER.severe("[getKeyFromCredentials] failed to read key from SSHUserPrivateKey: " + e.getMessage());
+        return new DefaultKeychain(keys);
+    }
+
+    @CheckForNull
+    public static Key getKeyFromCredentials(@CheckForNull SSHUserPrivateKey creds) {
+        if (creds != null) {
+            Keychain keys = getKeychainFromCredentials(creds);
+            if (!keys.isEmpty()) {
+                return keys.currentKey();
+            }
         }
 
         return null;
