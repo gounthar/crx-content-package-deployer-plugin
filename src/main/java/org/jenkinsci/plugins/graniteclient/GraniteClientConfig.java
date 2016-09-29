@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.CheckForNull;
 
 /**
  * Pojo for capturing the group of configuration values for a single Granite Client connection
@@ -50,8 +51,8 @@ public final class GraniteClientConfig implements Serializable {
     private static final List<String> ignorableSuffixes =
             Arrays.asList("/", "/crx", "/crx/packmgr", "/crx/packmgr/service.jsp");
 
-    static String trimUrl(String value) {
-        String trimmed = value.trim();
+    static String trimUrl(@CheckForNull String value) {
+        String trimmed = (value == null ? "" : value.trim());
         for (String ignorableSuffix : ignorableSuffixes) {
             if (trimmed.endsWith(ignorableSuffix)) {
                 trimmed = trimmed.substring(0, trimmed.length() - ignorableSuffix.length());
@@ -157,7 +158,7 @@ public final class GraniteClientConfig implements Serializable {
 
     public static String sanitizeUrl(final String url) {
         // remove tokens with extreme prejudice
-        String _url = url.replaceAll("\\$\\{\\w*\\}?", "");
+        String _url = trimUrl(url).replaceAll("\\$\\{\\w*\\}?", "");
 
         // identify http/s URLs, since that's really all we support
         Matcher urlMatcher = HTTP_URL_PATTERN.matcher(_url);
