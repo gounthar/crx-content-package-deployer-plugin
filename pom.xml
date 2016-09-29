@@ -133,7 +133,7 @@
         <dependency>
             <groupId>net.adamcin.granite</groupId>
             <artifactId>granite-client-packman</artifactId>
-            <version>0.7.7</version>
+            <version>0.7.8</version>
         </dependency>
         <dependency>
             <groupId>net.adamcin.httpsig</groupId>

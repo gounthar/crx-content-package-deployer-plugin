@@ -8,7 +8,7 @@ import java.util.List;
 import hudson.util.FormValidation;
 
 /**
- * Created by madamcin on 9/27/16.
+ * Common methods for parsing, sanitizing, and testing Base URL input
  */
 class BaseUrlUtil {
 

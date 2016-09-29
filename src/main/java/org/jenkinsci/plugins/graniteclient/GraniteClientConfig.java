@@ -36,6 +36,8 @@ import jenkins.model.Jenkins;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,6 +47,18 @@ import java.util.regex.Pattern;
 public final class GraniteClientConfig implements Serializable {
 
     private static final long serialVersionUID = 2713710297119924270L;
+    private static final List<String> ignorableSuffixes =
+            Arrays.asList("/", "/crx", "/crx/packmgr", "/crx/packmgr/service.jsp");
+
+    static String trimUrl(String value) {
+        String trimmed = value.trim();
+        for (String ignorableSuffix : ignorableSuffixes) {
+            if (trimmed.endsWith(ignorableSuffix)) {
+                trimmed = trimmed.substring(0, trimmed.length() - ignorableSuffix.length());
+            }
+        }
+        return trimmed;
+    }
 
     private final String baseUrl;
     private final String credentialsId;

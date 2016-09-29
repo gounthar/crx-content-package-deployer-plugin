@@ -50,6 +50,8 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
+import static org.jenkinsci.plugins.graniteclient.BaseUrlUtil.parseBaseUrls;
+
 /**
  * Implementation of the "Replicate Content Packages from CRX" build step
  */
@@ -147,16 +149,6 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
             listener.error("failed to expand tokens in: %s%n", getBaseUrls());
         }
         return parseBaseUrls(getBaseUrls());
-    }
-
-    private static List<String> parseBaseUrls(String value) {
-        List<String> _baseUrls = new ArrayList<String>();
-        for (String url : value.split("(\\r)?\\n")) {
-            if (url.trim().length() > 0) {
-                _baseUrls.add(url);
-            }
-        }
-        return Collections.unmodifiableList(_baseUrls);
     }
 
     public String getCredentialsId() {
