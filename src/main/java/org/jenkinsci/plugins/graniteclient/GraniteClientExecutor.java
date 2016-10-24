@@ -84,26 +84,56 @@ public final class GraniteClientExecutor {
         client.setServiceTimeout(config.getServiceTimeout());
         client.setWaitDelay(config.getWaitDelay());
 
-        if (doLogin(client, config.getCredentials(), listener)) {
+        if (doLogin(client, config.getCredentials(), config.isPreemptLogin(), listener)) {
             return callable.doExecute(client);
         } else {
             throw new IOException("Failed to login to " + config.getBaseUrl());
         }
     }
 
-    private static boolean doLogin(AsyncPackageManagerClient client, Credentials credentials,
+    private static boolean doLogin(AsyncPackageManagerClient client, Credentials credentials, boolean preemptLogin,
                                    final TaskListener listener) throws IOException {
         final Credentials _creds = credentials != null ? credentials :
                 GraniteAHCFactory.getFactoryInstance().getDefaultCredentials();
 
         if (_creds instanceof SSHUserPrivateKey) {
+            if (preemptLogin) {
+                listener.getLogger()
+                        .printf("[ALERT] Ignoring preemptive auth preference for HTTP Signature scheme.%n");
+            }
             return doLoginSignature(client, (SSHUserPrivateKey) _creds, listener);
         } else if (_creds instanceof UsernamePasswordCredentials) {
             String username = ((UsernamePasswordCredentials) _creds).getUsername();
             String password = ((UsernamePasswordCredentials) _creds).getPassword().getPlainText();
-            return doLoginPOST(client, username, password, listener);
+            if (preemptLogin) {
+                client.preemptLogin(username, password);
+                listener.getLogger()
+                        .printf("[ALERT] Preemptive basic auth enabled for URL %s%n", client.getBaseUrl());
+                try {
+                    return client.waitForService();
+                } catch (IOException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new IOException("Unexpected exception during preemptive auth check.", e);
+                }
+            } else {
+                return doLoginPOST(client, username, password, listener);
+            }
         } else {
-            return doLoginPOST(client, "admin", "admin", listener);
+            if (preemptLogin) {
+                client.preemptLogin("admin", "admin");
+                listener.getLogger()
+                        .printf("[ALERT] Preemptive basic auth enabled for URL %s%n", client.getBaseUrl());
+                try {
+                    return client.waitForService();
+                } catch (IOException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new IOException("Unexpected exception during preemptive auth check.", e);
+                }
+            } else {
+                return doLoginPOST(client, "admin", "admin", listener);
+            }
         }
     }
 
@@ -140,10 +170,8 @@ public final class GraniteClientExecutor {
     }
 
     public static boolean validateBaseUrl(final GraniteClientConfig config) throws IOException {
-        if (GraniteAHCFactory.getFactoryInstance().isDisableBaseUrlValidation()) {
-            return true;
-        }
-        final AsyncHttpClient asyncHttpClient = GraniteAHCFactory.getFactoryInstance().getInstanceForValidation();
+
+        final AsyncHttpClient asyncHttpClient = GraniteAHCFactory.getFactoryInstance().getInstance();
 
         AsyncPackageManagerClient client = new AsyncPackageManagerClient(asyncHttpClient);
 
@@ -152,7 +180,7 @@ public final class GraniteClientExecutor {
         client.setServiceTimeout(config.getServiceTimeout());
         client.setWaitDelay(config.getWaitDelay());
 
-        return doLogin(client, config.getCredentials(), DEFAULT_LISTENER);
+        return doLogin(client, config.getCredentials(), config.isPreemptLogin(), DEFAULT_LISTENER);
     }
 
 }

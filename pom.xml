@@ -133,7 +133,7 @@
         <dependency>
             <groupId>net.adamcin.granite</groupId>
             <artifactId>granite-client-packman</artifactId>
-            <version>0.7.8</version>
+            <version>0.7.9</version>
         </dependency>
         <dependency>
             <groupId>net.adamcin.httpsig</groupId>
@@ -154,7 +154,7 @@
         <dependency>
             <groupId>com.ning</groupId>
             <artifactId>async-http-client</artifactId>
-            <version>1.7.8</version>
+            <version>1.9.40</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>

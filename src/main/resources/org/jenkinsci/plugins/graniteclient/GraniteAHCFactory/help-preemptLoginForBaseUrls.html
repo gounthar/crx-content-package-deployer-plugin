@@ -26,6 +26,18 @@
   -->
 
 <div>
-    Specify a global timeout in milliseconds for connections used to validate Base URL configurations. By default this is 10000 (10 seconds). Specify a value of
-    0 to use the default
+    Enable preemptive Basic Authentication for the following Base URLs, one per line. Any build step's connection to a
+    CRX server whose configured base URL starts with one of these patterns will skip the login request and assume the
+    basic credentials are correct.<br/>
+    <br/>
+    For example, a value of <code>https://</code> will enable preemptive authentication for all encrypted server
+    base URLs, whereas a more specific pattern of <code>http://author.corp.com:4502</code> will only enable preemptive
+    auth for a single host.<br/>
+    <br/>
+    WARNING: If misused or used incorrectly the preemptive authentication can lead to significant security issues,
+    such as sending user credentials in clear text to an unauthorized third party. Therefore, users are expected to
+    evaluate potential benefits of preemptive authentication versus security risks in the context of their specific
+    application environment.<br/>
+    <br/>
+    Connections configured to use <strong>[Signature]</strong> credentials are not affected by this configuration.
 </div>

@@ -47,7 +47,7 @@ import javax.annotation.CheckForNull;
  */
 public final class GraniteClientConfig implements Serializable {
 
-    private static final long serialVersionUID = 2713710297119924270L;
+    private static final long serialVersionUID = 2713710297119924271L;
     private static final List<String> ignorableSuffixes =
             Arrays.asList("/", "/crx", "/crx/packmgr", "/crx/packmgr/service.jsp");
 
@@ -67,16 +67,19 @@ public final class GraniteClientConfig implements Serializable {
     private final long serviceTimeout;
     private final long waitDelay;
     private final Credentials credentials;
+    private final boolean preemptLogin;
 
     public GraniteClientConfig(String baseUrl, String credentialsId) {
         this(baseUrl, credentialsId, 0L, 0L, 0L);
     }
 
-    public GraniteClientConfig(String baseUrl, String credentialsId, long requestTimeout, long serviceTimeout) {
+    public GraniteClientConfig(String baseUrl, String credentialsId,
+                               long requestTimeout, long serviceTimeout) {
         this(baseUrl, credentialsId, requestTimeout, serviceTimeout, 0L);
     }
 
-    public GraniteClientConfig(String baseUrl, String credentialsId, long requestTimeout, long serviceTimeout, long waitDelay) {
+    public GraniteClientConfig(String baseUrl, String credentialsId,
+                               long requestTimeout, long serviceTimeout, long waitDelay) {
         this.credentialsId = credentialsId;
         this.requestTimeout = requestTimeout > 0L ? requestTimeout : -1L;
         this.serviceTimeout = serviceTimeout > 0L ? serviceTimeout : -1L;
@@ -114,6 +117,7 @@ public final class GraniteClientConfig implements Serializable {
 
         this.baseUrl = _baseUrl;
         this.credentials = _credentials;
+        this.preemptLogin = GraniteAHCFactory.getFactoryInstance().shouldPreemptLoginForBaseUrl(this.baseUrl);
     }
 
     public String getBaseUrl() {
@@ -152,6 +156,10 @@ public final class GraniteClientConfig implements Serializable {
 
     public Credentials getCredentials() {
         return credentials;
+    }
+
+    public boolean isPreemptLogin() {
+        return preemptLogin;
     }
 
     private static final Pattern HTTP_URL_PATTERN = Pattern.compile("(https?://)([^/]+)($|/.*)");

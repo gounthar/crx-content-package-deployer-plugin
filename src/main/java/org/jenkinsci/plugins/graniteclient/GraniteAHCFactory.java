@@ -49,23 +49,20 @@ import org.kohsuke.stapler.StaplerRequest;
  * Global extension and configurable factory for {@link AsyncHttpClient} instances
  */
 @Extension
-public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> implements Describable<GraniteAHCFactory>, Serializable {
+public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory>
+        implements Describable<GraniteAHCFactory>, Serializable {
 
-    private static final long serialVersionUID = 1329103722879551699L;
+    private static final long serialVersionUID = 1329103722879551700L;
     private static final int DEFAULT_TIMEOUT = 60000;
     private static final int DEFAULT_TIMEOUT_FOR_VALIDATION = 10000;
 
     private String credentialsId;
+    private String preemptLoginForBaseUrls;
     private int connectionTimeoutInMs = DEFAULT_TIMEOUT;
     private int idleConnectionTimeoutInMs = DEFAULT_TIMEOUT;
     private int requestTimeoutInMs = DEFAULT_TIMEOUT;
-    private boolean disableBaseUrlValidation;
-    private int connectionTimeoutInMsForValidation = DEFAULT_TIMEOUT_FOR_VALIDATION;
-    private int idleConnectionTimeoutInMsForValidation = DEFAULT_TIMEOUT_FOR_VALIDATION;
-    private int requestTimeoutInMsForValidation = DEFAULT_TIMEOUT_FOR_VALIDATION;
 
     private transient AsyncHttpClient instance;
-    private transient AsyncHttpClient instanceForValidation;
 
     public GraniteAHCFactory() {
         this(true);
@@ -89,30 +86,12 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
         this.instance = new AsyncHttpClient(
                 new AsyncHttpClientConfig.Builder()
                         .setProxyServer(getProxyServer())
-                        .setConnectionTimeoutInMs(this.connectionTimeoutInMs > 0 ?
+                        .setConnectTimeout(this.connectionTimeoutInMs > 0 ?
                                 this.connectionTimeoutInMs : DEFAULT_TIMEOUT)
-                        .setIdleConnectionTimeoutInMs(this.idleConnectionTimeoutInMs > 0 ?
+                        .setReadTimeout(this.idleConnectionTimeoutInMs > 0 ?
                                 this.idleConnectionTimeoutInMs : DEFAULT_TIMEOUT)
-                        .setRequestTimeoutInMs(this.requestTimeoutInMs > 0 ?
+                        .setRequestTimeout(this.requestTimeoutInMs > 0 ?
                                 this.requestTimeoutInMs : DEFAULT_TIMEOUT)
-                        .build()
-        );
-
-        if (this.instanceForValidation != null) {
-            if (!this.instanceForValidation.isClosed()) {
-                this.instanceForValidation.close();
-            }
-        }
-
-        this.instanceForValidation = new AsyncHttpClient(
-                new AsyncHttpClientConfig.Builder()
-                        .setProxyServer(getProxyServer())
-                        .setConnectionTimeoutInMs(this.connectionTimeoutInMsForValidation > 0 ?
-                                this.connectionTimeoutInMsForValidation : DEFAULT_TIMEOUT_FOR_VALIDATION)
-                        .setIdleConnectionTimeoutInMs(this.idleConnectionTimeoutInMsForValidation > 0 ?
-                                this.idleConnectionTimeoutInMsForValidation : DEFAULT_TIMEOUT_FOR_VALIDATION)
-                        .setRequestTimeoutInMs(this.requestTimeoutInMsForValidation > 0 ?
-                                this.requestTimeoutInMsForValidation : DEFAULT_TIMEOUT_FOR_VALIDATION)
                         .build()
         );
     }
@@ -136,6 +115,14 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
 
     public void setCredentialsId(String credentialsId) {
         this.credentialsId = credentialsId;
+    }
+
+    public String getPreemptLoginForBaseUrls() {
+        return preemptLoginForBaseUrls;
+    }
+
+    public void setPreemptLoginForBaseUrls(String preemptLoginForBaseUrls) {
+        this.preemptLoginForBaseUrls = preemptLoginForBaseUrls;
     }
 
     public int getConnectionTimeoutInMs() {
@@ -162,38 +149,6 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
         this.requestTimeoutInMs = requestTimeoutInMs;
     }
 
-    public boolean isDisableBaseUrlValidation() {
-        return disableBaseUrlValidation;
-    }
-
-    public void setDisableBaseUrlValidation(boolean disableBaseUrlValidation) {
-        this.disableBaseUrlValidation = disableBaseUrlValidation;
-    }
-
-    public int getConnectionTimeoutInMsForValidation() {
-        return connectionTimeoutInMsForValidation;
-    }
-
-    public void setConnectionTimeoutInMsForValidation(int connectionTimeoutInMsForValidation) {
-        this.connectionTimeoutInMsForValidation = connectionTimeoutInMsForValidation;
-    }
-
-    public int getIdleConnectionTimeoutInMsForValidation() {
-        return idleConnectionTimeoutInMsForValidation;
-    }
-
-    public void setIdleConnectionTimeoutInMsForValidation(int idleConnectionTimeoutInMsForValidation) {
-        this.idleConnectionTimeoutInMsForValidation = idleConnectionTimeoutInMsForValidation;
-    }
-
-    public int getRequestTimeoutInMsForValidation() {
-        return requestTimeoutInMsForValidation;
-    }
-
-    public void setRequestTimeoutInMsForValidation(int requestTimeoutInMsForValidation) {
-        this.requestTimeoutInMsForValidation = requestTimeoutInMsForValidation;
-    }
-
     @Override
     public String getDisplayName() {
         return "CRX Content Package Deployer - HTTP Client";
@@ -217,12 +172,24 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory> imple
     }
 
     /**
-     * This variation of {@link #getInstance()} returns a client which uses the validation-specific timeout settings.
-     *
-     * @return a client configured for validation.
+     * compare the baseUrl against the configured list of patterns that should preempt login using basic auth
+     * @param baseUrl the base url to check
+     * @return true if preemptive basic auth should be enabled
      */
-    public AsyncHttpClient getInstanceForValidation() {
-        return this.instanceForValidation;
+    public boolean shouldPreemptLoginForBaseUrl(String baseUrl) {
+        String _patterns = this.getPreemptLoginForBaseUrls();
+        if (baseUrl != null && _patterns != null) {
+            String[] patterns = _patterns.split("\\r?\\n");
+            boolean matched = false;
+            for (String pattern : patterns) {
+                if (!pattern.trim().isEmpty() && (baseUrl + "/").startsWith(pattern.trim())) {
+                    matched = true;
+                }
+            }
+            return matched;
+        }
+        return false;
+
     }
 
     @SuppressWarnings("unchecked")
