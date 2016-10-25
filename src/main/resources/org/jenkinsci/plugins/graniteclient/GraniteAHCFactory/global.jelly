@@ -33,8 +33,8 @@
             <creds:select />
         </f:entry>
 
-        <f:entry title="Preempt Login for Base URLs" field="preemptLoginForBaseUrls">
-            <f:expandableTextbox />
+        <f:entry title="Preempt Login Base URL Patterns" field="preemptLoginForBaseUrls">
+            <f:textarea />
         </f:entry>
 
         <f:entry title="Connection Timeout in MS" field="connectionTimeoutInMs">

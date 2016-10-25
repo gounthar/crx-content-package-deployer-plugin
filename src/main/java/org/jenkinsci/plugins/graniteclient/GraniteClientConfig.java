@@ -27,12 +27,6 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
-import com.cloudbees.jenkins.plugins.sshcredentials.SSHUser;
-import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
-import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.common.UsernameCredentials;
-import jenkins.model.Jenkins;
-
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -41,6 +35,12 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
+import com.cloudbees.jenkins.plugins.sshcredentials.SSHUser;
+import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.common.UsernameCredentials;
 
 /**
  * Pojo for capturing the group of configuration values for a single Granite Client connection
@@ -61,25 +61,28 @@ public final class GraniteClientConfig implements Serializable {
         return trimmed;
     }
 
+    private final GraniteClientGlobalConfig globalConfig;
     private final String baseUrl;
     private final String credentialsId;
     private final long requestTimeout;
     private final long serviceTimeout;
     private final long waitDelay;
-    private final Credentials credentials;
-    private final boolean preemptLogin;
+    private final String urlUserInfo;
+    private Credentials credentials;
+    private boolean resolvedCredentials;
 
-    public GraniteClientConfig(String baseUrl, String credentialsId) {
-        this(baseUrl, credentialsId, 0L, 0L, 0L);
+    public GraniteClientConfig(@Nonnull GraniteClientGlobalConfig globalConfig, String baseUrl, String credentialsId) {
+        this(globalConfig, baseUrl, credentialsId, 0L, 0L, 0L);
     }
 
-    public GraniteClientConfig(String baseUrl, String credentialsId,
+    public GraniteClientConfig(@Nonnull GraniteClientGlobalConfig globalConfig, String baseUrl, String credentialsId,
                                long requestTimeout, long serviceTimeout) {
-        this(baseUrl, credentialsId, requestTimeout, serviceTimeout, 0L);
+        this(globalConfig, baseUrl, credentialsId, requestTimeout, serviceTimeout, 0L);
     }
 
-    public GraniteClientConfig(String baseUrl, String credentialsId,
+    public GraniteClientConfig(@Nonnull GraniteClientGlobalConfig globalConfig, String baseUrl, String credentialsId,
                                long requestTimeout, long serviceTimeout, long waitDelay) {
+        this.globalConfig = globalConfig;
         this.credentialsId = credentialsId;
         this.requestTimeout = requestTimeout > 0L ? requestTimeout : -1L;
         this.serviceTimeout = serviceTimeout > 0L ? serviceTimeout : -1L;
@@ -87,18 +90,12 @@ public final class GraniteClientConfig implements Serializable {
 
         String _baseUrl = sanitizeUrl(baseUrl);
 
-        Credentials _credentials = GraniteNamedIdCredentials.getCredentialsById(credentialsId);
-
-        if (_credentials == null) {
-            _credentials = GraniteAHCFactory.getFactoryInstance().getDefaultCredentials();
-        }
-
+        String _urlUserInfo = null;
         try {
             URI baseUri = new URI(_baseUrl);
             if (baseUri.getUserInfo() != null) {
 
-                _credentials = GraniteNamedIdCredentials
-                        .getCredentialsFromURIUserInfo(baseUri.getUserInfo(), _credentials);
+                _urlUserInfo = baseUri.getUserInfo();
 
                 URI changed = new URI(
                         baseUri.getScheme(),
@@ -116,8 +113,20 @@ public final class GraniteClientConfig implements Serializable {
         }
 
         this.baseUrl = _baseUrl;
-        this.credentials = _credentials;
-        this.preemptLogin = GraniteAHCFactory.getFactoryInstance().shouldPreemptLoginForBaseUrl(this.baseUrl);
+        this.urlUserInfo = _urlUserInfo;
+    }
+
+    public void resolveCredentials() {
+        Credentials _credentials = GraniteNamedIdCredentials.getCredentialsById(this.credentialsId);
+        if (_credentials == null) {
+            _credentials = globalConfig.getDefaultCredentials();
+        }
+        this.credentials = this.urlOverrideCredentials(_credentials);
+        this.resolvedCredentials = true;
+    }
+
+    public GraniteClientGlobalConfig getGlobalConfig() {
+        return globalConfig;
     }
 
     public String getBaseUrl() {
@@ -130,6 +139,13 @@ public final class GraniteClientConfig implements Serializable {
 
     public boolean isSignatureLogin() {
         return credentials instanceof SSHUserPrivateKey;
+    }
+
+    public Credentials getCredentials() {
+        if (!this.resolvedCredentials) {
+            throw new AssertionError("Credentials were not resolved");
+        }
+        return credentials;
     }
 
     public String getUsername() {
@@ -154,12 +170,16 @@ public final class GraniteClientConfig implements Serializable {
         return waitDelay;
     }
 
-    public Credentials getCredentials() {
-        return credentials;
+    public String getUrlUserInfo() {
+        return urlUserInfo;
     }
 
-    public boolean isPreemptLogin() {
-        return preemptLogin;
+    public Credentials urlOverrideCredentials(Credentials toOverride) {
+        if (getUrlUserInfo() != null) {
+            return GraniteNamedIdCredentials
+                    .getCredentialsFromURIUserInfo(getUrlUserInfo(), toOverride);
+        }
+        return toOverride;
     }
 
     private static final Pattern HTTP_URL_PATTERN = Pattern.compile("(https?://)([^/]+)($|/.*)");

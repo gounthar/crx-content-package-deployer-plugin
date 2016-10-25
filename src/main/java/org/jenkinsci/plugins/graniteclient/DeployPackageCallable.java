@@ -33,7 +33,6 @@ import java.io.IOException;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
-import jenkins.MasterToSlaveFileCallable;
 import net.adamcin.granite.client.packman.DetailedResponse;
 import net.adamcin.granite.client.packman.ListResponse;
 import net.adamcin.granite.client.packman.PackId;
@@ -44,7 +43,7 @@ import net.adamcin.granite.client.packman.SimpleResponse;
 /**
  * Implementation of {@link hudson.FilePath.FileCallable} used by the {@link DeployPackagesBuilder}
  */
-public final class DeployPackageCallable extends MasterToSlaveFileCallable<Result> {
+public final class DeployPackageCallable extends GraniteClientFileCallable<Result> {
 
     private static final long serialVersionUID = -3235879975250741115L;
     private final GraniteClientConfig clientConfig;
@@ -54,7 +53,9 @@ public final class DeployPackageCallable extends MasterToSlaveFileCallable<Resul
     private final ExistingPackageBehavior behavior;
     private final ResponseProgressListener progressListener;
 
-    public DeployPackageCallable(GraniteClientConfig clientConfig, TaskListener listener, PackId packId, PackageInstallOptions options, ExistingPackageBehavior behavior) {
+    public DeployPackageCallable(GraniteClientConfig clientConfig,
+                                 TaskListener listener, PackId packId, PackageInstallOptions options,
+                                 ExistingPackageBehavior behavior) {
         this.clientConfig = clientConfig;
         this.listener = listener;
         this.progressListener = new JenkinsResponseProgressListener(this.listener);

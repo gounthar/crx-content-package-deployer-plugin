@@ -27,11 +27,22 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
+
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.*;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
+import hudson.model.Result;
+import hudson.model.TaskListener;
 import hudson.security.AccessControlled;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
@@ -42,13 +53,6 @@ import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import javax.annotation.Nonnull;
-import javax.servlet.ServletException;
 
 import static org.jenkinsci.plugins.graniteclient.BaseUrlUtil.parseBaseUrls;
 
@@ -88,15 +92,17 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
 
         for (String baseUrl : listBaseUrls(build, listener)) {
             if (result.isBetterOrEqualTo(Result.UNSTABLE)) {
-                GraniteClientConfig clientConfig = new GraniteClientConfig(
-                        baseUrl, credentialsId, requestTimeout, serviceTimeout, waitDelay);
+                GraniteClientConfig clientConfig =
+                        new GraniteClientConfig(GraniteAHCFactory.getGlobalConfig(), baseUrl,
+                                credentialsId, requestTimeout, serviceTimeout, waitDelay);
+
+                clientConfig.resolveCredentials();
 
                 ReplicatePackagesClientCallable callable = new ReplicatePackagesClientCallable(
                         listener, listPackIds(build, listener), ignoreErrors);
 
                 try {
-                    result = result.combine(GraniteClientExecutor.execute(
-                            callable, clientConfig, listener));
+                    result = result.combine(GraniteClientExecutor.execute(callable, clientConfig, listener));
                 } catch (Exception e) {
                     e.printStackTrace(listener.fatalError(
                             "Failed to replicate packages.", e.getMessage()));

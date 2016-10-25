@@ -27,11 +27,30 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
+
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.*;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
+import hudson.model.Result;
+import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
 import hudson.security.AccessControlled;
 import hudson.tasks.BuildStepDescriptor;
@@ -47,12 +66,6 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-import javax.annotation.Nonnull;
-import javax.servlet.ServletException;
 
 import static org.jenkinsci.plugins.graniteclient.BaseUrlUtil.parseBaseUrls;
 
@@ -260,7 +273,10 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         for (String baseUrl : listBaseUrls(build, listener)) {
             if (result.isBetterOrEqualTo(Result.UNSTABLE)) {
                 GraniteClientConfig clientConfig =
-                        new GraniteClientConfig(baseUrl, credentialsId, requestTimeout, serviceTimeout, waitDelay);
+                        new GraniteClientConfig(GraniteAHCFactory.getGlobalConfig(),
+                                baseUrl, credentialsId, requestTimeout, serviceTimeout, waitDelay);
+
+                clientConfig.resolveCredentials();
 
                 listener.getLogger().printf("Deploying packages to %s%n", clientConfig.getBaseUrl());
                 for (Map.Entry<PackId, FilePath> selectedPackage : selectPackages(build, workspace, listener).entrySet()) {
@@ -272,8 +288,7 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
                         callable = new DebugPackageCallable(selectedPackage.getKey(), listener);
                     } else {
 
-                        callable = new DeployPackageCallable(
-                                clientConfig, listener,
+                        callable = new DeployPackageCallable(clientConfig, listener,
                                 selectedPackage.getKey(), getPackageInstallOptions(), getExistingPackageBehavior());
                     }
 

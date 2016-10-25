@@ -33,7 +33,6 @@ import java.io.IOException;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
-import jenkins.MasterToSlaveFileCallable;
 import net.adamcin.granite.client.packman.DetailedResponse;
 import net.adamcin.granite.client.packman.DownloadResponse;
 import net.adamcin.granite.client.packman.PackId;
@@ -45,7 +44,7 @@ import net.adamcin.granite.client.packman.WspFilter;
 /**
  * Implementation of {@link hudson.FilePath.FileCallable} used by the {@link org.jenkinsci.plugins.graniteclient.BuildPackageBuilder}
  */
-public class BuildPackageCallable extends MasterToSlaveFileCallable<Result> {
+public class BuildPackageCallable extends GraniteClientFileCallable<Result> {
 
     private static final long serialVersionUID = 1329103722879551699L;
     private final GraniteClientConfig clientConfig;
@@ -55,8 +54,8 @@ public class BuildPackageCallable extends MasterToSlaveFileCallable<Result> {
     private final boolean download;
     private final ResponseProgressListener progressListener;
 
-    public BuildPackageCallable(GraniteClientConfig clientConfig, TaskListener listener,
-                                PackId packId, WspFilter wspFilter, boolean download) {
+    public BuildPackageCallable(GraniteClientConfig clientConfig,
+                                TaskListener listener, PackId packId, WspFilter wspFilter, boolean download) {
         this.clientConfig = clientConfig;
         this.listener = listener;
         this.packId = packId;

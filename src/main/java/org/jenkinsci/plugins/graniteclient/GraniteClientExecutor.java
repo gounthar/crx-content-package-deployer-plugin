@@ -27,6 +27,12 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import java.io.IOException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
@@ -36,18 +42,11 @@ import com.ning.http.client.Response;
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
 import net.adamcin.granite.client.packman.async.AsyncPackageManagerClient;
-import net.adamcin.httpsig.api.Key;
 import net.adamcin.httpsig.api.KeyId;
 import net.adamcin.httpsig.api.Keychain;
 import net.adamcin.httpsig.api.Signer;
 import net.adamcin.httpsig.http.ning.AsyncUtil;
 import net.adamcin.httpsig.ssh.jce.UserKeysFingerprintKeyId;
-
-import java.io.IOException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Executes {@link PackageManagerClientCallable} instances by injecting an {@link AsyncPackageManagerClient}
@@ -73,21 +72,25 @@ public final class GraniteClientExecutor {
     public static <T> T execute(PackageManagerClientCallable<T> callable, GraniteClientConfig config,
                                 TaskListener _listener) throws Exception {
         final TaskListener listener = _listener != null ? _listener : DEFAULT_LISTENER;
-        GraniteAHCFactory ahcFactory = GraniteAHCFactory.getFactoryInstance();
 
-        AsyncHttpClient ahcClient = ahcFactory.getInstance();
+        final AsyncHttpClient ahcClient = config.getGlobalConfig().getInstance();
+        try {
+            AsyncPackageManagerClient client = new AsyncPackageManagerClient(ahcClient);
 
-        AsyncPackageManagerClient client = new AsyncPackageManagerClient(ahcClient);
+            boolean preemptLogin = isPreemptLogin(config, listener);
 
-        client.setBaseUrl(config.getBaseUrl());
-        client.setRequestTimeout(config.getRequestTimeout());
-        client.setServiceTimeout(config.getServiceTimeout());
-        client.setWaitDelay(config.getWaitDelay());
+            client.setBaseUrl(config.getBaseUrl());
+            client.setRequestTimeout(config.getRequestTimeout());
+            client.setServiceTimeout(config.getServiceTimeout());
+            client.setWaitDelay(config.getWaitDelay());
 
-        if (doLogin(client, config.getCredentials(), config.isPreemptLogin(), listener)) {
-            return callable.doExecute(client);
-        } else {
-            throw new IOException("Failed to login to " + config.getBaseUrl());
+            if (doLogin(client, config.getCredentials(), preemptLogin, listener)) {
+                return callable.doExecute(client);
+            } else {
+                throw new IOException("Failed to login to " + config.getBaseUrl());
+            }
+        } finally {
+            ahcClient.close();
         }
     }
 
@@ -99,7 +102,7 @@ public final class GraniteClientExecutor {
         if (_creds instanceof SSHUserPrivateKey) {
             if (preemptLogin) {
                 listener.getLogger()
-                        .printf("[ALERT] Ignoring preemptive auth preference for HTTP Signature scheme.%n");
+                        .printf("[ALERT] Ignoring preemptive auth preference for HTTP Signature scheme.%n").flush();
             }
             return doLoginSignature(client, (SSHUserPrivateKey) _creds, listener);
         } else if (_creds instanceof UsernamePasswordCredentials) {
@@ -108,7 +111,7 @@ public final class GraniteClientExecutor {
             if (preemptLogin) {
                 client.preemptLogin(username, password);
                 listener.getLogger()
-                        .printf("[ALERT] Preemptive basic auth enabled for URL %s%n", client.getBaseUrl());
+                        .printf("[ALERT] Preemptive basic auth enabled for URL %s%n", client.getBaseUrl()).flush();
                 try {
                     return client.waitForService();
                 } catch (IOException e) {
@@ -123,7 +126,7 @@ public final class GraniteClientExecutor {
             if (preemptLogin) {
                 client.preemptLogin("admin", "admin");
                 listener.getLogger()
-                        .printf("[ALERT] Preemptive basic auth enabled for URL %s%n", client.getBaseUrl());
+                        .printf("[ALERT] Preemptive basic auth enabled for URL %s%n", client.getBaseUrl()).flush();
                 try {
                     return client.waitForService();
                 } catch (IOException e) {
@@ -150,8 +153,8 @@ public final class GraniteClientExecutor {
         Future<Boolean> fResponse = AsyncUtil.login(
                 client.getClient(),
                 signer, client.getClient().prepareGet(
-                client.getBaseUrl() + "?sling:authRequestLogin=Signature&j_validate=true"
-        ).build(), LOGIN_HANDLER);
+                        client.getBaseUrl() + "?sling:authRequestLogin=Signature&j_validate=true"
+                ).build(), LOGIN_HANDLER);
 
         try {
             if (client.getServiceTimeout() > 0) {
@@ -170,17 +173,28 @@ public final class GraniteClientExecutor {
     }
 
     public static boolean validateBaseUrl(final GraniteClientConfig config) throws IOException {
+        final TaskListener listener = DEFAULT_LISTENER;
+        final AsyncHttpClient asyncHttpClient = config.getGlobalConfig().getInstance();
+        try {
 
-        final AsyncHttpClient asyncHttpClient = GraniteAHCFactory.getFactoryInstance().getInstance();
+            AsyncPackageManagerClient client = new AsyncPackageManagerClient(asyncHttpClient);
 
-        AsyncPackageManagerClient client = new AsyncPackageManagerClient(asyncHttpClient);
+            client.setBaseUrl(config.getBaseUrl());
+            client.setRequestTimeout(config.getRequestTimeout());
+            client.setServiceTimeout(config.getServiceTimeout());
+            client.setWaitDelay(config.getWaitDelay());
 
-        client.setBaseUrl(config.getBaseUrl());
-        client.setRequestTimeout(config.getRequestTimeout());
-        client.setServiceTimeout(config.getServiceTimeout());
-        client.setWaitDelay(config.getWaitDelay());
+            return doLogin(client, config.getCredentials(),
+                    isPreemptLogin(config, listener), listener);
+        } finally {
+            asyncHttpClient.close();
+        }
 
-        return doLogin(client, config.getCredentials(), config.isPreemptLogin(), DEFAULT_LISTENER);
+    }
+
+    static boolean isPreemptLogin(final GraniteClientConfig config, final TaskListener _listener) {
+        final TaskListener listener = _listener != null ? _listener : DEFAULT_LISTENER;
+        return config.getGlobalConfig().shouldPreemptLoginForBaseUrl(config.getBaseUrl(), listener);
     }
 
 }

@@ -24,7 +24,11 @@ class BaseUrlUtil {
 
     static FormValidation testOneConnection(final String baseUrl, String credentialsId, long requestTimeout, long serviceTimeout) {
         GraniteClientConfig config =
-                new GraniteClientConfig(baseUrl, credentialsId, requestTimeout, serviceTimeout);
+                new GraniteClientConfig(GraniteAHCFactory.getGlobalConfig(),
+                        baseUrl, credentialsId, requestTimeout, serviceTimeout);
+
+        config.resolveCredentials();
+
         try {
             if (!GraniteClientExecutor.validateBaseUrl(config)) {
                 return FormValidation.error("Failed to login to " + config.getBaseUrl() + " as " + config.getUsername());
@@ -39,7 +43,11 @@ class BaseUrlUtil {
     static FormValidation testManyConnections(final String baseUrls, String credentialsId, long requestTimeout, long serviceTimeout) {
         for (String baseUrl : parseBaseUrls(baseUrls)) {
             GraniteClientConfig config =
-                    new GraniteClientConfig(baseUrl, credentialsId, requestTimeout, serviceTimeout);
+                    new GraniteClientConfig(GraniteAHCFactory.getGlobalConfig(),
+                            baseUrl, credentialsId, requestTimeout, serviceTimeout);
+
+            config.resolveCredentials();
+
             try {
                 if (!GraniteClientExecutor.validateBaseUrl(config)) {
                     return FormValidation.error("Failed to login to " + config.getBaseUrl() + " as " + config.getUsername());

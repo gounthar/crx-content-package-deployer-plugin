@@ -27,13 +27,15 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import java.util.Collections;
+import java.util.List;
+
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import com.cloudbees.plugins.credentials.common.IdCredentials;
-import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
@@ -41,10 +43,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.security.AccessControlled;
-import hudson.util.ListBoxModel;
-
-import java.util.Collections;
-import java.util.List;
 
 /**
  *

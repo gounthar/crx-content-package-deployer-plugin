@@ -27,13 +27,24 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import javax.servlet.ServletException;
+
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import hudson.Extension;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
 import hudson.security.AccessControlled;
 import hudson.util.FormValidation;
-import net.adamcin.granite.client.packman.*;
+import net.adamcin.granite.client.packman.ListResponse;
+import net.adamcin.granite.client.packman.ListResult;
+import net.adamcin.granite.client.packman.PackId;
+import net.adamcin.granite.client.packman.PackIdFilter;
+import net.adamcin.granite.client.packman.PackageManagerClient;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
@@ -41,13 +52,6 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import javax.servlet.ServletException;
 
 /**
  * Implementation of the "CRX Content Package Choice Parameter" type
@@ -301,7 +305,8 @@ public class PackageChoiceParameterDefinition extends ParameterDefinition {
     }
 
     public GraniteClientConfig getGraniteClientConfig() {
-        return new GraniteClientConfig(getBaseUrl(), getCredentialsId(), requestTimeout, serviceTimeout);
+        return new GraniteClientConfig(GraniteAHCFactory.getGlobalConfig(), getBaseUrl(),
+                getCredentialsId(), requestTimeout, serviceTimeout);
 
     }
 

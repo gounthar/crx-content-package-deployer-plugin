@@ -24,13 +24,17 @@ public class GraniteClientConfigTest {
     @Test
     public void testConstructor() {
         try {
-            GraniteClientConfig config = new GraniteClientConfig("http://localhost:4502", "");
+            GraniteClientGlobalConfig globalConfig = new GraniteClientGlobalConfig(null, null, 0, 0, 0, null);
+            GraniteClientConfig config = new GraniteClientConfig(globalConfig, "http://localhost:4502", "");
+            config.resolveCredentials();
             assertEquals("simple base url should be unchanged:", "http://localhost:4502", config.getBaseUrl());
 
-            GraniteClientConfig configWithCreds = new GraniteClientConfig("http://admin:admin@localhost:4502", "");
+            GraniteClientConfig configWithCreds = new GraniteClientConfig(globalConfig, "http://admin:admin@localhost:4502", "");
+            configWithCreds.resolveCredentials();
             assertEquals("base url should have userInfo removed:", "http://localhost:4502", configWithCreds.getBaseUrl());
 
-            GraniteClientConfig configWithBase = new GraniteClientConfig("http://joeTester:Passw%ord@ 123$@localhost:4502/withBase", "");
+            GraniteClientConfig configWithBase = new GraniteClientConfig(globalConfig, "http://joeTester:Passw%ord@ 123$@localhost:4502/withBase", "");
+            configWithBase.resolveCredentials();
             assertEquals("base url should have userInfo removed:", "http://localhost:4502/withBase", configWithBase.getBaseUrl());
 
             assertTrue("credentials should be instance of StandardUsernamePasswordCredentials",

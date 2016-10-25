@@ -27,21 +27,23 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
-import hudson.FilePath;
-import hudson.model.Result;
-import hudson.model.TaskListener;
-import hudson.remoting.VirtualChannel;
-import jenkins.MasterToSlaveFileCallable;
-import net.adamcin.granite.client.packman.*;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import hudson.model.Result;
+import hudson.model.TaskListener;
+import hudson.remoting.VirtualChannel;
+import net.adamcin.granite.client.packman.DetailedResponse;
+import net.adamcin.granite.client.packman.DownloadResponse;
+import net.adamcin.granite.client.packman.PackId;
+import net.adamcin.granite.client.packman.PackageManagerClient;
+import net.adamcin.granite.client.packman.ResponseProgressListener;
+
 /**
  * Implementation of {@link hudson.FilePath.FileCallable} used by the {@link DownloadPackagesBuilder}
  */
-public class DownloadPackagesCallable extends MasterToSlaveFileCallable<Result> {
+public class DownloadPackagesCallable extends GraniteClientFileCallable<Result> {
 
     private static final long serialVersionUID = 5909791609148794746L;
     protected final GraniteClientConfig clientConfig;
@@ -51,9 +53,9 @@ public class DownloadPackagesCallable extends MasterToSlaveFileCallable<Result> 
     private final boolean rebuild;
     private final ResponseProgressListener progressListener;
 
-    public DownloadPackagesCallable(GraniteClientConfig clientConfig, TaskListener listener,
-                                   List<PackId> packIds, boolean ignoreErrors,
-                                   boolean rebuild) {
+    public DownloadPackagesCallable(GraniteClientConfig clientConfig,
+                                    TaskListener listener, List<PackId> packIds,
+                                    boolean ignoreErrors, boolean rebuild) {
         this.clientConfig = clientConfig;
         this.listener = listener;
         this.packIds = packIds;

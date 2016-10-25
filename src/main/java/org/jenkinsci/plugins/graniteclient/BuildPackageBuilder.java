@@ -27,12 +27,19 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import java.io.IOException;
+import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
+
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
-import hudson.AbortException;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.*;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
+import hudson.model.Result;
+import hudson.model.TaskListener;
 import hudson.security.AccessControlled;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
@@ -44,10 +51,6 @@ import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-
-import java.io.IOException;
-import javax.annotation.Nonnull;
-import javax.servlet.ServletException;
 
 /**
  * Implementation of the "Build a Content Package on CRX" build step
@@ -98,8 +101,10 @@ public class BuildPackageBuilder extends AbstractBuildStep {
         String wspFilterString = getWspFilter(build, listener);
         WspFilter filter = WspFilter.parseSimpleSpec(wspFilterString);
 
-        GraniteClientConfig clientConfig = new GraniteClientConfig(
+        GraniteClientConfig clientConfig = new GraniteClientConfig(GraniteAHCFactory.getGlobalConfig(),
                 getBaseUrl(build, listener), credentialsId, requestTimeout, serviceTimeout, waitDelay);
+
+        clientConfig.resolveCredentials();
 
         BuildPackageCallable callable =
                 new BuildPackageCallable(clientConfig, listener, packId, filter, download);

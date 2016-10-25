@@ -26,11 +26,11 @@
   -->
 
 <div>
-    Enable preemptive Basic Authentication for the following Base URLs, one per line. Any build step's connection to a
-    CRX server whose configured base URL starts with one of these patterns will skip the login request and assume the
-    basic credentials are correct.<br/>
+    Enable preemptive Basic Authentication for the Base URLs matching any of these patterns (one regular expression per
+    line). Any build step's connection to a CRX server whose configured base URL matches one of these patterns will
+    skip the login request and assume the basic credentials are correct.<br/>
     <br/>
-    For example, a value of <code>https://</code> will enable preemptive authentication for all encrypted server
+    For example, a value of <code>^https://</code> will enable preemptive authentication for all encrypted server
     base URLs, whereas a more specific pattern of <code>http://author.corp.com:4502</code> will only enable preemptive
     auth for a single host.<br/>
     <br/>

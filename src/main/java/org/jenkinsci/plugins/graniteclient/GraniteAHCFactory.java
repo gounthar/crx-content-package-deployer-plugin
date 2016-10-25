@@ -27,23 +27,32 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import java.io.IOException;
 import java.io.Serializable;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
 
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import com.ning.http.client.AsyncHttpClient;
-import com.ning.http.client.AsyncHttpClientConfig;
-import com.ning.http.client.ProxyServer;
 import hudson.Extension;
 import hudson.ProxyConfiguration;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
+import hudson.model.TaskListener;
 import hudson.security.AccessControlled;
+import hudson.util.FormValidation;
+import hudson.util.LogTaskListener;
 import jenkins.model.Jenkins;
-import net.sf.json.JSONObject;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
+
+import static org.jenkinsci.plugins.graniteclient.GraniteClientGlobalConfig.getPreemptLoginPatterns;
 
 /**
  * Global extension and configurable factory for {@link AsyncHttpClient} instances
@@ -52,9 +61,11 @@ import org.kohsuke.stapler.StaplerRequest;
 public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory>
         implements Describable<GraniteAHCFactory>, Serializable {
 
-    private static final long serialVersionUID = 1329103722879551700L;
-    private static final int DEFAULT_TIMEOUT = 60000;
-    private static final int DEFAULT_TIMEOUT_FOR_VALIDATION = 10000;
+    private static final Logger LOGGER = Logger.getLogger(GraniteAHCFactory.class.getName());
+    private static final TaskListener DEFAULT_LISTENER = new LogTaskListener(LOGGER, Level.INFO);
+
+    private static final long serialVersionUID = 1329103722879551701L;
+    private static final int DEFAULT_TIMEOUT = GraniteClientGlobalConfig.DEFAULT_TIMEOUT;
 
     private String credentialsId;
     private String preemptLoginForBaseUrls;
@@ -62,51 +73,14 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory>
     private int idleConnectionTimeoutInMs = DEFAULT_TIMEOUT;
     private int requestTimeoutInMs = DEFAULT_TIMEOUT;
 
-    private transient AsyncHttpClient instance;
-
     public GraniteAHCFactory() {
-        this(true);
-    }
-
-    public GraniteAHCFactory(boolean loadDescriptor) {
         super(GraniteAHCFactory.class);
-        if (loadDescriptor) {
-            load();
-        }
-        this.resetClients();
     }
 
-    private void resetClients() {
-        if (this.instance != null) {
-            if (!this.instance.isClosed()) {
-                this.instance.close();
-            }
-        }
-
-        this.instance = new AsyncHttpClient(
-                new AsyncHttpClientConfig.Builder()
-                        .setProxyServer(getProxyServer())
-                        .setConnectTimeout(this.connectionTimeoutInMs > 0 ?
-                                this.connectionTimeoutInMs : DEFAULT_TIMEOUT)
-                        .setReadTimeout(this.idleConnectionTimeoutInMs > 0 ?
-                                this.idleConnectionTimeoutInMs : DEFAULT_TIMEOUT)
-                        .setRequestTimeout(this.requestTimeoutInMs > 0 ?
-                                this.requestTimeoutInMs : DEFAULT_TIMEOUT)
-                        .build()
-        );
-    }
 
     @SuppressWarnings("unchecked")
     public Descriptor<GraniteAHCFactory> getDescriptor() {
         return getFactoryDescriptor();
-    }
-
-    @Override
-    public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
-        req.bindJSON(this, json.getJSONObject("GraniteAHCFactory"));
-        save();
-        this.resetClients();
-        return true;
     }
 
     public String getCredentialsId() {
@@ -167,61 +141,64 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory>
         }
     }
 
-    public AsyncHttpClient getInstance() {
-        return this.instance;
-    }
-
-    /**
-     * compare the baseUrl against the configured list of patterns that should preempt login using basic auth
-     * @param baseUrl the base url to check
-     * @return true if preemptive basic auth should be enabled
-     */
-    public boolean shouldPreemptLoginForBaseUrl(String baseUrl) {
-        String _patterns = this.getPreemptLoginForBaseUrls();
-        if (baseUrl != null && _patterns != null) {
-            String[] patterns = _patterns.split("\\r?\\n");
-            boolean matched = false;
-            for (String pattern : patterns) {
-                if (!pattern.trim().isEmpty() && (baseUrl + "/").startsWith(pattern.trim())) {
-                    matched = true;
-                }
-            }
-            return matched;
+    public FormValidation doCheckPreemptLoginForBaseUrls(@QueryParameter String value)
+            throws IOException, ServletException {
+        try {
+            List<Pattern> patterns = getPreemptLoginPatterns(value);
+            return FormValidation.ok();
+        } catch (PatternSyntaxException e) {
+            return FormValidation.error("Invalid regular expression: %n%s%n", e.getMessage());
         }
-        return false;
-
     }
+
 
     @SuppressWarnings("unchecked")
     private static Descriptor<GraniteAHCFactory> getFactoryDescriptor() {
         Jenkins j = Jenkins.getInstance();
-        if (j==null) {
+        if (j == null) {
             throw new AssertionError(GraniteAHCFactory.class + " is missing its Jenkins");
         }
         return j.getDescriptorOrDie(GraniteAHCFactory.class);
     }
 
     public static GraniteAHCFactory getFactoryInstance() {
-        if (Jenkins.getInstance() != null) {
-            Descriptor descriptor = getFactoryDescriptor();
-            if (descriptor instanceof GraniteAHCFactory) {
-                return (GraniteAHCFactory) descriptor;
-            }
-        }
-
-        return new GraniteAHCFactory(false);
+        return getFactoryInstance(Jenkins.getActiveInstance());
     }
 
-    public static ProxyServer getProxyServer() {
-        ProxyServer proxyServer;
-        Jenkins j = Jenkins.getInstance();
-        if (j != null && j.proxy != null) {
-            ProxyConfiguration proxy = j.proxy;
-            proxyServer = new ProxyServer(proxy.name, proxy.port, proxy.getUserName(), proxy.getPassword());
+    public static GraniteAHCFactory getFactoryInstance(@Nonnull Jenkins jenkins) {
+        Descriptor descriptor = jenkins.getDescriptorOrDie(GraniteAHCFactory.class);
+        if (descriptor instanceof GraniteAHCFactory) {
+            GraniteAHCFactory factory = (GraniteAHCFactory) descriptor;
+            factory.load();
+            return factory;
         } else {
-            proxyServer = null;
+            throw new AssertionError("Incompatible descriptor: " + descriptor.getJsonSafeClassName());
         }
-
-        return proxyServer;
     }
+
+    public GraniteClientGlobalConfig createGlobalConfig() {
+        GraniteClientGlobalConfig globalConfig =
+                new GraniteClientGlobalConfig(
+                        this.getDefaultCredentials(),
+                        this.getPreemptLoginForBaseUrls(),
+                        this.getConnectionTimeoutInMs(),
+                        this.getIdleConnectionTimeoutInMs(),
+                        this.getRequestTimeoutInMs(),
+                        getProxyConfig());
+        return globalConfig;
+    }
+
+    public static GraniteClientGlobalConfig getGlobalConfig() {
+        GraniteAHCFactory factory = getFactoryInstance();
+        return factory.createGlobalConfig();
+    }
+
+    public static ProxyConfiguration getProxyConfig() {
+        Jenkins j = Jenkins.getActiveInstance();
+        if (j != null && j.proxy != null) {
+            return j.proxy;
+        }
+        return null;
+    }
+
 }
