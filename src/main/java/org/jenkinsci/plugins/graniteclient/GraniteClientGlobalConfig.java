@@ -117,7 +117,6 @@ public class GraniteClientGlobalConfig implements Serializable {
                         .printf("[WARN] exception encountered when attempting to compile Preempt Login patterns: %n%s%n",
                                 e.getMessage());
             }
-            listener.error("[shouldPreemptLoginForBaseUrl] baseUrl: %s, matched: %s", baseUrl, matched);
             return matched;
         }
         return false;
