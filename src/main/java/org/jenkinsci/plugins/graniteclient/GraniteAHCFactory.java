@@ -49,8 +49,10 @@ import hudson.security.AccessControlled;
 import hudson.util.FormValidation;
 import hudson.util.LogTaskListener;
 import jenkins.model.Jenkins;
+import net.sf.json.JSONObject;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
 
 import static org.jenkinsci.plugins.graniteclient.GraniteClientGlobalConfig.getPreemptLoginPatterns;
 
@@ -73,10 +75,24 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory>
     private int idleConnectionTimeoutInMs = DEFAULT_TIMEOUT;
     private int requestTimeoutInMs = DEFAULT_TIMEOUT;
 
+    /**
+     * The parent type is not responsible for loading
+     */
     public GraniteAHCFactory() {
         super(GraniteAHCFactory.class);
+        load();
     }
 
+    // do not remove this!
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+        req.bindJSON(this, json.getJSONObject("GraniteAHCFactory"));
+        save();
+        return true;
+    }
 
     @SuppressWarnings("unchecked")
     public Descriptor<GraniteAHCFactory> getDescriptor() {
