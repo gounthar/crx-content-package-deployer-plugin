@@ -127,15 +127,26 @@ public class PackageChoiceParameterDefinition extends ParameterDefinition {
         return new PackageChoiceParameterValue(getName(), StringUtils.join(values, "\n"));
     }
 
+    private static class Execution implements PackageManagerClientCallable<ListResponse> {
+        private final String query;
+
+        public Execution(String query) {
+            this.query = query;
+        }
+
+        @Override
+        public ListResponse doExecute(PackageManagerClient client) throws Exception {
+            return client.list(this.query);
+        }
+    }
+
     public List<PackId> getPackageList() {
         GraniteClientConfig config = getGraniteClientConfig();
 
         try {
-            ListResponse response = GraniteClientExecutor.execute(new PackageManagerClientCallable<ListResponse>() {
-                public ListResponse doExecute(PackageManagerClient client) throws Exception {
-                    return client.list(query);
-                }
-            }, config);
+            config.resolveCredentials();
+
+            ListResponse response = GraniteClientExecutor.execute(new Execution(this.query), config);
 
             List<PackId> packIds = new ArrayList<PackId>();
             List<ListResult> results = response.getResults();
