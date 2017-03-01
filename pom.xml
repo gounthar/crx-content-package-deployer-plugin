@@ -34,7 +34,7 @@
     </parent>
 
     <artifactId>crx-content-package-deployer</artifactId>
-    <version>1.7</version>
+    <version>1.8-SNAPSHOT</version>
     <packaging>hpi</packaging>
 
     <name>CRX Content Package Deployer Plugin</name>
@@ -48,7 +48,7 @@
         <connection>scm:git:ssh://github.com/jenkinsci/crx-content-package-deployer-plugin.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/crx-content-package-deployer.git</developerConnection>
         <url>https://github.com/jenkinsci/crx-content-package-deployer-plugin</url>
-      <tag>crx-content-package-deployer-1.7</tag>
+      <tag>HEAD</tag>
   </scm>
 
     <developers>
