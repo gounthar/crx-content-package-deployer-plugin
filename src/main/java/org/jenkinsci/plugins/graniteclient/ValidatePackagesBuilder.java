@@ -31,12 +31,11 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
-import hudson.remoting.VirtualChannel;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
-import jenkins.MasterToSlaveFileCallable;
-import jenkins.SlaveToMasterFileCallable;
+import hudson.util.ListBoxModel;
+import net.adamcin.granite.client.packman.ACHandling;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.WspFilter;
 import net.adamcin.granite.client.packman.validation.DefaultValidationOptions;
@@ -44,7 +43,6 @@ import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import javax.annotation.Nonnull;
@@ -59,14 +57,22 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
     private String validationFilter;
     private boolean allowNonCoveredRoots;
     private String forbiddenExtensions;
+    private String forbiddenACHandlingModeSet;
+    private String forbiddenFilterRootPrefixes;
+    private String pathsDeniedForInclusion;
 
     @DataBoundConstructor
-    public ValidatePackagesBuilder(String packageIdFilters, String localDirectory, String validationFilter, boolean allowNonCoveredRoots, String forbiddenExtensions) {
+    public ValidatePackagesBuilder(String packageIdFilters, String localDirectory, String validationFilter,
+                                   boolean allowNonCoveredRoots, String forbiddenExtensions, String forbiddenACHandlingModeSet,
+                                   String forbiddenFilterRootPrefixes, String pathsDeniedForInclusion) {
         this.packageIdFilters = packageIdFilters;
         this.localDirectory = localDirectory;
         this.validationFilter = validationFilter;
         this.allowNonCoveredRoots = allowNonCoveredRoots;
         this.forbiddenExtensions = forbiddenExtensions;
+        this.forbiddenACHandlingModeSet = forbiddenACHandlingModeSet;
+        this.forbiddenFilterRootPrefixes = forbiddenFilterRootPrefixes;
+        this.pathsDeniedForInclusion = pathsDeniedForInclusion;
     }
 
     public String getPackageIdFilters() {
@@ -119,6 +125,30 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
         this.forbiddenExtensions = forbiddenExtensions;
     }
 
+    public String getForbiddenACHandlingModeSet() {
+        return forbiddenACHandlingModeSet;
+    }
+
+    public void setForbiddenACHandlingModeSet(String forbiddenACHandlingModeSet) {
+        this.forbiddenACHandlingModeSet = forbiddenACHandlingModeSet;
+    }
+
+    public String getForbiddenFilterRootPrefixes() {
+        return forbiddenFilterRootPrefixes;
+    }
+
+    public void setForbiddenFilterRootPrefixes(String forbiddenFilterRootPrefixes) {
+        this.forbiddenFilterRootPrefixes = forbiddenFilterRootPrefixes;
+    }
+
+    public String getPathsDeniedForInclusion() {
+        return pathsDeniedForInclusion;
+    }
+
+    public void setPathsDeniedForInclusion(String pathsDeniedForInclusion) {
+        this.pathsDeniedForInclusion = pathsDeniedForInclusion;
+    }
+
     public String getValidationFilter(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
         try {
             return TokenMacro.expandAll(build, listener, getValidationFilter());
@@ -137,11 +167,36 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
         return getForbiddenExtensions();
     }
 
+    public String getPathsDeniedForInclusion(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
+        try {
+            return TokenMacro.expandAll(build, listener, getPathsDeniedForInclusion());
+        } catch (Exception e) {
+            listener.error("failed to expand tokens in: %s%n", getPathsDeniedForInclusion());
+        }
+        return getPathsDeniedForInclusion();
+    }
+
+    public String getForbiddenFilterRootPrefixes(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
+        try {
+            return TokenMacro.expandAll(build, listener, getForbiddenFilterRootPrefixes());
+        } catch (Exception e) {
+            listener.error("failed to expand tokens in: %s%n", getForbiddenFilterRootPrefixes());
+        }
+        return getForbiddenFilterRootPrefixes();
+    }
+
+    public List<ACHandling> getForbiddenACHandlingModes() {
+        return ForbiddenACHandlingModeSet.safeValueOf(getForbiddenACHandlingModeSet()).getForbiddenModes();
+    }
+
     private DefaultValidationOptions getValidationOptions(AbstractBuild<?, ?> build, TaskListener listener)
             throws IOException, InterruptedException {
         DefaultValidationOptions options = new DefaultValidationOptions();
         options.setAllowNonCoveredRoots(isAllowNonCoveredRoots());
         options.setForbiddenExtensions(Arrays.asList(getForbiddenExtensions(build, listener).split("\r?\n")));
+        options.setPathsDeniedForInclusion(Arrays.asList(getPathsDeniedForInclusion(build, listener).split("\r?\n")));
+        options.setForbiddenACHandlingModes(getForbiddenACHandlingModes());
+        options.setForbiddenFilterRootPrefixes(Arrays.asList(getForbiddenFilterRootPrefixes(build, listener).split("\r?\n")));
 
         WspFilter filter = WspFilter.parseSimpleSpec(getValidationFilter(build, listener));
         if (filter != null && !filter.getRoots().isEmpty()) {
@@ -308,5 +363,61 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
         }
 
 
+        public ListBoxModel doFillForbiddenACHandlingModeSetItems() {
+            ListBoxModel model = new ListBoxModel();
+            for (ForbiddenACHandlingModeSet modeSet : ForbiddenACHandlingModeSet.values()) {
+                model.add(modeSet.getListLabel(), modeSet.name());
+            }
+            return model;
+        }
+
+    }
+
+    enum ForbiddenACHandlingModeSet {
+        SKIP_VALIDATION("Skip Validation", Collections.<ACHandling>emptyList()),
+        NO_CLEAR("No Clear", Collections.singletonList(ACHandling.CLEAR)),
+        NO_UNSAFE("No Unsafe", Arrays.asList(ACHandling.CLEAR, ACHandling.OVERWRITE)),
+        ALLOW_ADDITIVE("Allow Additive", Arrays.asList(ACHandling.CLEAR, ACHandling.OVERWRITE, ACHandling.MERGE)),
+        NO_ACL("No ACLs", Arrays.asList(ACHandling.CLEAR, ACHandling.OVERWRITE, ACHandling.MERGE, ACHandling.MERGE_PRESERVE));
+
+        private final String listLabel;
+        private final List<ACHandling> forbiddenModes;
+
+        ForbiddenACHandlingModeSet(String listLabel, List<ACHandling> forbiddenModes) {
+            this.listLabel = listLabel;
+            this.forbiddenModes = forbiddenModes;
+        }
+
+        public String getListLabel() {
+            return listLabel;
+        }
+
+        public List<ACHandling> getForbiddenModes() {
+            return forbiddenModes;
+        }
+
+        static ForbiddenACHandlingModeSet forEmptySelection() {
+            return SKIP_VALIDATION;
+        }
+
+        static ForbiddenACHandlingModeSet forUnknownSelection() {
+            return NO_ACL;
+        }
+
+        static ForbiddenACHandlingModeSet safeValueOf(String modeSetName) {
+            if (modeSetName == null || modeSetName.isEmpty()) {
+                return forEmptySelection();
+            } else {
+                try {
+                    return ForbiddenACHandlingModeSet.valueOf(modeSetName);
+                } catch (IllegalArgumentException e) {
+                    if (modeSetName.toLowerCase().startsWith("skip")) {
+                        return forEmptySelection();
+                    } else {
+                        return forUnknownSelection();
+                    }
+                }
+            }
+        }
     }
 }

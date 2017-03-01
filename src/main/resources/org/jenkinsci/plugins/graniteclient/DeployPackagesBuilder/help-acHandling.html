@@ -27,4 +27,23 @@
 
 <div>
     Change the way content ACL's included in the package filter scope are handled during installation.
+    <dl>
+        <dt>Defer to Package</dt>
+        <dd>Allow package to specify AC Handling mode. (This can be dangerous. Consider using a <strong>Validate CRX Content Packages</strong>
+            step to check packages for destructive AC Handling rules before you deploy them.)</dd>
+        <dt>Ignore</dt>
+        <dd>Ignores the packaged access control and leaves the target unchanged.</dd>
+        <dt>MergePreserve</dt>
+        <dd>Merge access control in the content with the one provided with the package by adding the access control entries
+             of principals not present in the content (i.e. content first). It never alters access control entries already
+             existing in the content.</dd>
+        <dt>Merge</dt>
+        <dd>Merge access control provided with the package with the one in the content by replacing the access control
+             entries of corresponding principals (i.e. package first). It never alters access control entries of principals
+             not present in the package.</dd>
+        <dt>Overwrite</dt>
+        <dd>Applies the access control provided with the package to the target. This also removes existing access control.</dd>
+        <dt>Clear</dt>
+        <dd>Clears all access control on the target system.</dd>
+    </dl>
 </div>

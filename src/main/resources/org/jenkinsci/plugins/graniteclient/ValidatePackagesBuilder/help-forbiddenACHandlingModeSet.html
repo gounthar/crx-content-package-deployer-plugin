@@ -1,4 +1,3 @@
-<?jelly escape-by-default='true'?>
 <!--
   ~ This is free and unencumbered software released into the public domain.
   ~
@@ -26,42 +25,20 @@
   ~ For more information, please refer to <http://unlicense.org/>
   -->
 
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:creds="/lib/credentials">
-
-    <f:entry title="Package ID" field="packageIdFilters">
-        <f:expandableTextbox/>
-    </f:entry>
-
-    <f:entry title="Local Directory" field="localDirectory">
-        <f:textbox/>
-    </f:entry>
-
-    <f:advanced title="Validation Options">
-
-        <f:entry title="Forbidden Extensions" field="forbiddenExtensions">
-            <f:textarea/>
-        </f:entry>
-
-        <f:entry title="Forbidden AC Handling Modes" field="forbiddenACHandlingModeSet">
-            <f:select />
-        </f:entry>
-
-        <f:entry title="Forbidden Filter Root Prefixes" field="forbiddenFilterRootPrefixes">
-            <f:textarea/>
-        </f:entry>
-
-        <f:entry title="Paths Denied for Inclusion" field="pathsDeniedForInclusion">
-            <f:textarea/>
-        </f:entry>
-
-        <f:entry title="Validation Workspace Filter" field="validationFilter">
-            <f:textarea/>
-        </f:entry>
-
-        <f:entry title="Allow Non-covered Roots" field="allowNonCoveredRoots">
-            <f:checkbox />
-        </f:entry>
-
-    </f:advanced>
-
-</j:jelly>
+<div>
+    Select a set of AC Handling Modes to forbid, to prevent destructive or unauthorized changes to Access Control Lists,
+    at the package level:<br/>
+    <br/>
+    <dl>
+        <dt>Skip Validation</dt>
+        <dd>Do not validate package AC Handling Mode.</dd>
+        <dt>No Clear</dt>
+        <dd>Forbid the "Clear" AC Handling Mode, which resets all covered ACLs (Forbids "Clear").</dd>
+        <dt>No Unsafe</dt>
+        <dd>Forbid any AC Handling Mode which may delete ACLs for unspecified users (Forbids "Clear", "Overwrite").</dd>
+        <dt>Allow Additive</dt>
+        <dd>Forbid any AC Handling Mode which may delete or overwrite an existing ACL (Forbids "Clear", "Overwrite", "Merge").</dd>
+        <dt>No ACLs</dt>
+        <dd>Forbid any AC Handling Mode other than "Ignore" (Forbids "Clear", "Overwrite", "Merge", "MergePreserve").</dd>
+    </dl>
+</div>

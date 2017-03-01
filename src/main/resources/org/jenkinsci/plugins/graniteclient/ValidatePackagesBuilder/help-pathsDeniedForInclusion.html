@@ -1,4 +1,3 @@
-<?jelly escape-by-default='true'?>
 <!--
   ~ This is free and unencumbered software released into the public domain.
   ~
@@ -26,42 +25,15 @@
   ~ For more information, please refer to <http://unlicense.org/>
   -->
 
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:creds="/lib/credentials">
-
-    <f:entry title="Package ID" field="packageIdFilters">
-        <f:expandableTextbox/>
-    </f:entry>
-
-    <f:entry title="Local Directory" field="localDirectory">
-        <f:textbox/>
-    </f:entry>
-
-    <f:advanced title="Validation Options">
-
-        <f:entry title="Forbidden Extensions" field="forbiddenExtensions">
-            <f:textarea/>
-        </f:entry>
-
-        <f:entry title="Forbidden AC Handling Modes" field="forbiddenACHandlingModeSet">
-            <f:select />
-        </f:entry>
-
-        <f:entry title="Forbidden Filter Root Prefixes" field="forbiddenFilterRootPrefixes">
-            <f:textarea/>
-        </f:entry>
-
-        <f:entry title="Paths Denied for Inclusion" field="pathsDeniedForInclusion">
-            <f:textarea/>
-        </f:entry>
-
-        <f:entry title="Validation Workspace Filter" field="validationFilter">
-            <f:textarea/>
-        </f:entry>
-
-        <f:entry title="Allow Non-covered Roots" field="allowNonCoveredRoots">
-            <f:checkbox />
-        </f:entry>
-
-    </f:advanced>
-
-</j:jelly>
+<div>
+    List of test paths which must be "excluded" by the package filter in order to be considered valid. For example:<br/>
+    <br/>
+    <pre>
+        /apps/system/rep:policy
+        /etc/map/http/site_root_redirect
+    </pre>
+    Use this test to safeguard specific paths or possible paths within unrestricted roots from overly broad workspace
+    filters.<br/>
+    <br/>
+    This field supports parameter tokens.
+</div>

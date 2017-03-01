@@ -73,6 +73,7 @@ import static org.jenkinsci.plugins.graniteclient.BaseUrlUtil.parseBaseUrls;
  * Implementation of the "Deploy Content Packages to CRX" build step
  */
 public class DeployPackagesBuilder extends AbstractBuildStep {
+    private static final String ACHANDLING_DEFER_VALUE = "_DEFER"; // must be upper case
 
     private String packageIdFilters;
     private String baseUrls;
@@ -187,7 +188,11 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
     }
 
     public String getAcHandling() {
-        return acHandling;
+        if (acHandling == null) {
+            return acHandling;
+        } else {
+            return acHandling.toUpperCase();
+        }
     }
 
     public void setAcHandling(String acHandling) {
@@ -227,13 +232,17 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
     }
 
     public PackageInstallOptions getPackageInstallOptions() {
-        ACHandling _acHandling = ACHandling.IGNORE;
+        ACHandling _acHandling = null;
         if (getAcHandling() != null) {
-            if ("merge".equalsIgnoreCase(getAcHandling())) {
+            if (ACHandling.IGNORE.name().equals(getAcHandling())) {
+                _acHandling = ACHandling.IGNORE;
+            } else if (ACHandling.MERGE.name().equals(getAcHandling())) {
                 _acHandling = ACHandling.MERGE;
-            } else if ("overwrite".equalsIgnoreCase(getAcHandling())) {
+            } else if (ACHandling.MERGE_PRESERVE.name().equals(getAcHandling())) {
+                _acHandling = ACHandling.MERGE_PRESERVE;
+            } else if (ACHandling.OVERWRITE.name().equals(getAcHandling())) {
                 _acHandling = ACHandling.OVERWRITE;
-            } else if ("clear".equalsIgnoreCase(getAcHandling())) {
+            } else if (ACHandling.CLEAR.name().equals(getAcHandling())) {
                 _acHandling = ACHandling.CLEAR;
             }
         }
@@ -471,7 +480,18 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         }
 
         public ListBoxModel doFillAcHandlingItems() {
-            return new ListBoxModel().add("Ignore").add("Merge").add("Clear").add("Overwrite");
+            ListBoxModel model = new ListBoxModel();
+            model.add("Defer to Package", ACHANDLING_DEFER_VALUE);
+            for (ACHandling mode : Arrays.asList(
+                    ACHandling.IGNORE,
+                    ACHandling.MERGE_PRESERVE,
+                    ACHandling.MERGE,
+                    ACHandling.OVERWRITE,
+                    ACHandling.CLEAR)
+                    ) {
+                model.add(mode.getLabel(), mode.name());
+            }
+            return model;
         }
 
         public ListBoxModel doFillBehaviorItems() {

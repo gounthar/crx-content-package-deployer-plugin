@@ -27,7 +27,9 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
-import hudson.FilePath;
+import java.io.File;
+import java.io.IOException;
+
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
@@ -35,9 +37,6 @@ import jenkins.MasterToSlaveFileCallable;
 import net.adamcin.granite.client.packman.validation.DefaultValidationOptions;
 import net.adamcin.granite.client.packman.validation.PackageValidator;
 import net.adamcin.granite.client.packman.validation.ValidationResult;
-
-import java.io.File;
-import java.io.IOException;
 
 /**
  * Simple callable implementation for the ValidatePackagesBuilder
@@ -70,8 +69,23 @@ public class ValidateFileCallable extends MasterToSlaveFileCallable<Result> {
                 listener.error("Covered by validation filter set: %n%s", result.getCoveringRoot().toSpec());
                 break;
             case FORBIDDEN_EXTENSION:
-                listener.fatalError("Package Jar contains an entry with a forbidden file extension.");
+                listener.fatalError("Package Archive contains an entry with a forbidden file extension.");
                 listener.error("Invalid Jar entry: %s", result.getForbiddenEntry());
+                break;
+            case FORBIDDEN_ACHANDLING:
+                listener.fatalError("Package declares a forbidden AC Handling Mode.");
+                listener.error("Forbidden AC Handling Mode: %s (%s)", result.getForbiddenACHandlingMode().getLabel(),
+                        result.getForbiddenACHandlingMode().getPropertyValue());
+                break;
+            case FORBIDDEN_FILTER_ROOT_PREFIX:
+                listener.fatalError("Package defines a path filter root with a forbidden prefix.");
+                listener.error("Forbidden Filter Root Prefix: %s", result.getForbiddenEntry());
+                listener.error("Invalid filter set: %n%s", result.getInvalidRoot().toSpec());
+                break;
+            case DENIED_PATH_INCLUSION:
+                listener.fatalError("Package filter includes denied path.");
+                listener.error("Path denied for inclusion: %s", result.getForbiddenEntry());
+                listener.error("Invalid filter set: %n%s", result.getInvalidRoot().toSpec());
                 break;
             case FAILED_TO_ID:
             case FAILED_TO_OPEN:
