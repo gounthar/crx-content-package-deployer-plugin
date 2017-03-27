@@ -169,7 +169,7 @@ public class PackageChoiceParameterDefinition extends ParameterDefinition {
         List<PackId> packIds = new ArrayList<PackId>();
 
         String effectiveValue = getEffectiveValue();
-        for (String pid : effectiveValue.split("\\r?\\n")) {
+        for (String pid : BaseUrlUtil.splitByNewline(effectiveValue)) {
             PackId packId = PackId.parsePid(pid);
             if (packId != null) {
                 packIds.add(packId);

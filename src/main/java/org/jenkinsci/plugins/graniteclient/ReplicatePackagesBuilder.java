@@ -54,7 +54,7 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
-import static org.jenkinsci.plugins.graniteclient.BaseUrlUtil.parseBaseUrls;
+import static org.jenkinsci.plugins.graniteclient.BaseUrlUtil.splitByNewline;
 
 /**
  * Implementation of the "Replicate Content Packages from CRX" build step
@@ -150,11 +150,11 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
 
     private List<String> listBaseUrls(AbstractBuild<?, ?> build, TaskListener listener) {
         try {
-            return parseBaseUrls(TokenMacro.expandAll(build, listener, getBaseUrls()));
+            return splitByNewline(TokenMacro.expandAll(build, listener, getBaseUrls()));
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getBaseUrls());
         }
-        return parseBaseUrls(getBaseUrls());
+        return splitByNewline(getBaseUrls());
     }
 
     public String getCredentialsId() {
@@ -168,7 +168,7 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
     public List<PackId> listPackIds(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
         List<PackId> packIds = new ArrayList<PackId>();
 
-        for (String packageId : getPackageIds(build, listener).split("\\r?\\n")) {
+        for (String packageId : BaseUrlUtil.splitByNewline(getPackageIds(build, listener))) {
             PackId packId = PackId.parsePid(packageId);
             if (packId != null) {
                 packIds.add(packId);
@@ -225,7 +225,7 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
         public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context,
                                                                           @QueryParameter("baseUrls") String baseUrls,
                                                                           @QueryParameter("value") String value) {
-            List<String> _baseUrls = parseBaseUrls(baseUrls);
+            List<String> _baseUrls = splitByNewline(baseUrls);
 
             if (!_baseUrls.isEmpty()) {
                 return GraniteCredentialsListBoxModel.fillItems(value, context, _baseUrls.iterator().next());

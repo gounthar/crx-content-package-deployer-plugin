@@ -157,7 +157,7 @@ public class DownloadPackagesBuilder extends AbstractBuildStep {
     public List<PackId> listPackIds(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
         List<PackId> packIds = new ArrayList<PackId>();
 
-        for (String packageId : getPackageIds(build, listener).split("\\r?\\n")) {
+        for (String packageId : BaseUrlUtil.splitByNewline(getPackageIds(build, listener))) {
             PackId packId = PackId.parsePid(packageId);
             if (packId != null) {
                 packIds.add(packId);

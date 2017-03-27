@@ -67,7 +67,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
-import static org.jenkinsci.plugins.graniteclient.BaseUrlUtil.parseBaseUrls;
+import static org.jenkinsci.plugins.graniteclient.BaseUrlUtil.splitByNewline;
 
 /**
  * Implementation of the "Deploy Content Packages to CRX" build step
@@ -399,7 +399,7 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
     private Map<String, PathOrPackIdFilter> listPackageFilters(AbstractBuild<?, ?> build, TaskListener listener) {
         Map<String, PathOrPackIdFilter> filters = new LinkedHashMap<String, PathOrPackIdFilter>();
         try {
-            for (String filter : getPackageIdFilters(build, listener).split("(\\r)?\\n")) {
+            for (String filter : splitByNewline(getPackageIdFilters(build, listener))) {
                 if (filter.trim().length() > 0) {
                     filters.put(filter, PathOrPackIdFilter.parse(filter));
                 }
@@ -412,11 +412,11 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
 
     private List<String> listBaseUrls(AbstractBuild<?, ?> build, TaskListener listener) {
         try {
-            return parseBaseUrls(TokenMacro.expandAll(build, listener, getBaseUrls()));
+            return splitByNewline(TokenMacro.expandAll(build, listener, getBaseUrls()));
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getBaseUrls());
         }
-        return parseBaseUrls(getBaseUrls());
+        return splitByNewline(getBaseUrls());
     }
 
 
@@ -461,7 +461,7 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context,
                                                                           @QueryParameter("baseUrls") String baseUrls,
                                                                           @QueryParameter("value") String value) {
-            List<String> _baseUrls = parseBaseUrls(baseUrls);
+            List<String> _baseUrls = splitByNewline(baseUrls);
 
             if (!_baseUrls.isEmpty()) {
                 return GraniteCredentialsListBoxModel.fillItems(value, context, _baseUrls.iterator().next());

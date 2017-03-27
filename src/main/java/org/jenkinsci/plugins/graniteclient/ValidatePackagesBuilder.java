@@ -310,7 +310,7 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
     private Map<String, PathOrPackIdFilter> listPackageFilters(AbstractBuild<?, ?> build, TaskListener listener) {
         Map<String, PathOrPackIdFilter> filters = new LinkedHashMap<String, PathOrPackIdFilter>();
         try {
-            for (String filter : getPackageIdFilters(build, listener).split("(\\r)?\\n")) {
+            for (String filter : BaseUrlUtil.splitByNewline(getPackageIdFilters(build, listener))) {
                 if (filter.trim().length() > 0) {
                     filters.put(filter, PathOrPackIdFilter.parse(filter));
                 }

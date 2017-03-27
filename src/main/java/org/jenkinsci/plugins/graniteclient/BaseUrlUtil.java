@@ -12,9 +12,16 @@ import hudson.util.FormValidation;
  */
 class BaseUrlUtil {
 
-    static List<String> parseBaseUrls(String value) {
+    static List<String> splitByNewline(String value) {
         List<String> _baseUrls = new ArrayList<String>();
-        for (String url : value.split("(\\r)?\\n")) {
+        // first try to explode on actual newlines
+        String[] parts = value.split("\\r?\\n");
+        // if there is only 1 part, try splitting on an escaped newline character.
+        if (parts.length <= 1) {
+            parts = value.split("\\\\n");
+        }
+
+        for (String url : parts) {
             if (url.trim().length() > 0) {
                 _baseUrls.add(url);
             }
@@ -41,7 +48,7 @@ class BaseUrlUtil {
     }
 
     static FormValidation testManyConnections(final String baseUrls, String credentialsId, long requestTimeout, long serviceTimeout) {
-        for (String baseUrl : parseBaseUrls(baseUrls)) {
+        for (String baseUrl : splitByNewline(baseUrls)) {
             GraniteClientConfig config =
                     new GraniteClientConfig(GraniteAHCFactory.getGlobalConfig(),
                             baseUrl, credentialsId, requestTimeout, serviceTimeout);
