@@ -38,6 +38,7 @@ import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.ning.http.client.AsyncCompletionHandler;
 import com.ning.http.client.AsyncHttpClient;
+import com.ning.http.client.AsyncHttpClientConfig;
 import com.ning.http.client.Response;
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
@@ -73,7 +74,14 @@ public final class GraniteClientExecutor {
                                 TaskListener _listener) throws Exception {
         final TaskListener listener = _listener != null ? _listener : DEFAULT_LISTENER;
 
-        final AsyncHttpClient ahcClient = config.getGlobalConfig().getInstance();
+        final GraniteClientGlobalConfig globalConfig = config.getGlobalConfig();
+        final AsyncHttpClient ahcClient = new AsyncHttpClient(new AsyncHttpClientConfig.Builder().setProxyServer(globalConfig.getProxyServer())
+                .setConnectTimeout(globalConfig.getConnectionTimeoutInMs())
+                .setReadTimeout(config.getServiceTimeout() > 0 ? (int) config.getServiceTimeout() : globalConfig.getIdleConnectionTimeoutInMs())
+                .setRequestTimeout(config.getRequestTimeout() > 0 ? (int) config.getRequestTimeout() : globalConfig.getRequestTimeoutInMs())
+                .build()
+        );
+        
         try {
             AsyncPackageManagerClient client = new AsyncPackageManagerClient(ahcClient);
 
