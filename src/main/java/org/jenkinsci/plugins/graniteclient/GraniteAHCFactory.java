@@ -27,6 +27,8 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import static org.jenkinsci.plugins.graniteclient.GraniteClientGlobalConfig.getPreemptLoginPatterns;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
@@ -44,8 +46,8 @@ import hudson.Extension;
 import hudson.ProxyConfiguration;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
+import hudson.model.Item;
 import hudson.model.TaskListener;
-import hudson.security.AccessControlled;
 import hudson.util.FormValidation;
 import hudson.util.LogTaskListener;
 import jenkins.model.Jenkins;
@@ -53,8 +55,6 @@ import net.sf.json.JSONObject;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-
-import static org.jenkinsci.plugins.graniteclient.GraniteClientGlobalConfig.getPreemptLoginPatterns;
 
 /**
  * Global extension and configurable factory for {@link AsyncHttpClient} instances
@@ -144,7 +144,7 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory>
         return "CRX Content Package Deployer - HTTP Client";
     }
 
-    public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context,
+    public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                                       @QueryParameter("value") String value) {
         return GraniteCredentialsListBoxModel.fillItems(value, context);
     }

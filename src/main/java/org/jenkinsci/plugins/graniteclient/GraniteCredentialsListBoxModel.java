@@ -61,11 +61,11 @@ public class GraniteCredentialsListBoxModel extends AbstractIdCredentialsListBox
         }
     }
 
-    public static AbstractIdCredentialsListBoxModel fillItems(final String currentValue, final AccessControlled context) {
+    public static AbstractIdCredentialsListBoxModel fillItems(final String currentValue, final Item context) {
         return fillItems(currentValue, context, Collections.<DomainRequirement>emptyList());
     }
 
-    public static AbstractIdCredentialsListBoxModel fillItems(final String currentValue, final AccessControlled context, final String baseUrl) {
+    public static AbstractIdCredentialsListBoxModel fillItems(final String currentValue, final Item context, final String baseUrl) {
         if (baseUrl != null) {
             return fillItems(currentValue, context, URIRequirementBuilder.fromUri(baseUrl).build());
         } else {
@@ -73,7 +73,7 @@ public class GraniteCredentialsListBoxModel extends AbstractIdCredentialsListBox
         }
     }
 
-    private static AbstractIdCredentialsListBoxModel fillItems(final String currentValue, final AccessControlled context, final List<DomainRequirement> reqs) {
+    private static AbstractIdCredentialsListBoxModel fillItems(final String currentValue, final Item context, final List<DomainRequirement> reqs) {
         AbstractIdCredentialsListBoxModel<GraniteCredentialsListBoxModel, IdCredentials> model =
                 new GraniteCredentialsListBoxModel().withEmptySelection();
 
@@ -83,7 +83,7 @@ public class GraniteCredentialsListBoxModel extends AbstractIdCredentialsListBox
         }
 
         List<SSHUserPrivateKey> keys = CredentialsProvider.lookupCredentials(SSHUserPrivateKey.class,
-                (Item) null, ACL.SYSTEM, reqs);
+                context, ACL.SYSTEM, reqs);
 
         if (!keys.isEmpty()) {
             for (SSHUserPrivateKey key : keys) {
@@ -93,7 +93,7 @@ public class GraniteCredentialsListBoxModel extends AbstractIdCredentialsListBox
 
         List<StandardUsernamePasswordCredentials> basicAuthCredsList =
                 CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class,
-                        (Item) null, ACL.SYSTEM, reqs);
+                        context, ACL.SYSTEM, reqs);
 
         if (!basicAuthCredsList.isEmpty()) {
             for (StandardUsernamePasswordCredentials creds : basicAuthCredsList) {

@@ -36,9 +36,9 @@ import javax.servlet.ServletException;
 
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import hudson.Extension;
+import hudson.model.Item;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
-import hudson.security.AccessControlled;
 import hudson.util.FormValidation;
 import net.adamcin.granite.client.packman.ListResponse;
 import net.adamcin.granite.client.packman.ListResult;
@@ -77,7 +77,7 @@ public class PackageChoiceParameterDefinition extends ParameterDefinition {
             return BaseUrlUtil.testOneConnection(baseUrl, credentialsId, requestTimeout, serviceTimeout);
         }
 
-        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context,
+        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                                           @QueryParameter("baseUrl") String baseUrl,
                                                                           @QueryParameter("value") String value) {
             return GraniteCredentialsListBoxModel.fillItems(value, context, baseUrl);

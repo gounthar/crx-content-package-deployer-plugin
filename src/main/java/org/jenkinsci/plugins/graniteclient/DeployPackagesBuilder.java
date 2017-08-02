@@ -27,6 +27,8 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import static org.jenkinsci.plugins.graniteclient.BaseUrlUtil.splitByNewline;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -49,10 +51,10 @@ import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
+import hudson.model.Item;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
-import hudson.security.AccessControlled;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
@@ -66,8 +68,6 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-
-import static org.jenkinsci.plugins.graniteclient.BaseUrlUtil.splitByNewline;
 
 /**
  * Implementation of the "Deploy Content Packages to CRX" build step
@@ -458,7 +458,7 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
             return true;
         }
 
-        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath AccessControlled context,
+        public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                                           @QueryParameter("baseUrls") String baseUrls,
                                                                           @QueryParameter("value") String value) {
             List<String> _baseUrls = splitByNewline(baseUrls);

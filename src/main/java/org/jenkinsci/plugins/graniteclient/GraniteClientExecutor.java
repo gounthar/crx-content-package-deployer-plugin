@@ -92,7 +92,8 @@ public final class GraniteClientExecutor {
             client.setServiceTimeout(config.getServiceTimeout());
             client.setWaitDelay(config.getWaitDelay());
 
-            if (doLogin(client, config.getCredentials(), preemptLogin, listener)) {
+            if (doLogin(client, config.getCredentials(), preemptLogin, listener,
+                    globalConfig.getDefaultCredentials())) {
                 return callable.doExecute(client);
             } else {
                 throw new IOException("Failed to login to " + config.getBaseUrl());
@@ -103,9 +104,8 @@ public final class GraniteClientExecutor {
     }
 
     private static boolean doLogin(AsyncPackageManagerClient client, Credentials credentials, boolean preemptLogin,
-                                   final TaskListener listener) throws IOException {
-        final Credentials _creds = credentials != null ? credentials :
-                GraniteAHCFactory.getFactoryInstance().getDefaultCredentials();
+                                   final TaskListener listener, Credentials defaultCredentials) throws IOException {
+        final Credentials _creds = credentials != null ? credentials : defaultCredentials;
 
         if (_creds instanceof SSHUserPrivateKey) {
             if (preemptLogin) {
@@ -193,7 +193,8 @@ public final class GraniteClientExecutor {
             client.setWaitDelay(config.getWaitDelay());
 
             return doLogin(client, config.getCredentials(),
-                    isPreemptLogin(config, listener), listener);
+                    isPreemptLogin(config, listener), listener,
+                    config.getGlobalConfig().getDefaultCredentials());
         } finally {
             asyncHttpClient.close();
         }
