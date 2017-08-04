@@ -102,6 +102,11 @@ public final class PathOrPackIdFilter implements PackIdFilter {
         }
     }
 
+    /**
+     * Replace windows backslashes with forward slashes.
+     * @param path the path to normalize
+     * @return the normalized path
+     */
     private static String normalizeSlashes(String path) {
         return path.replace("\\", "/");
     }
@@ -110,7 +115,6 @@ public final class PathOrPackIdFilter implements PackIdFilter {
         if (isPathFilter()) {
             String relPath = PathUtil.getRelativeFilePath(normalizeSlashes(basePath.getRemote()),
                     normalizeSlashes(filePath.getRemote()), "/");
-            System.out.println("relPath: " + relPath);
             return SelectorUtils.matchPath(normalizeSlashes(this.pathPattern), relPath);
         } else {
             return false;
