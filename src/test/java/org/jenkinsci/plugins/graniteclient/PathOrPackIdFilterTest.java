@@ -28,6 +28,7 @@
 package org.jenkinsci.plugins.graniteclient;
 
 import hudson.FilePath;
+import hudson.remoting.VirtualChannel;
 import net.adamcin.commons.testing.junit.FailUtil;
 import net.adamcin.granite.client.packman.PackId;
 import org.junit.Test;
@@ -57,6 +58,8 @@ public class PathOrPackIdFilterTest {
 
         FilePath baseDir = new FilePath(new File("target/testPathFilter"));
         FilePath packFile = new FilePath(baseDir, packId.getInstallationPath().substring(1) + ".zip");
+        FilePath winBaseDir = new FilePath((VirtualChannel) null, "C:\\target\\testPathFilter");
+        FilePath winPackFile = new FilePath((VirtualChannel) null, "C:\\target\\testPathFilter\\" + packId.getInstallationPath().substring(1).replace("/", "\\") + ".zip");
 
         FilePath groupDir = packFile.getParent();
 
@@ -66,6 +69,10 @@ public class PathOrPackIdFilterTest {
 
             PathOrPackIdFilter packNameFilter = PathOrPackIdFilter.parse("**/test-name-*.zip");
             assertTrue("packNameFilter should include file", packNameFilter.includes(baseDir, packFile));
+            assertTrue("packNameFilter should include win file", packNameFilter.includes(winBaseDir, winPackFile));
+
+            PathOrPackIdFilter winPackNameFilter = PathOrPackIdFilter.parse("**\\test-name-*.zip");
+            assertTrue("winPackNameFilter should include win file", winPackNameFilter.includes(winBaseDir, winPackFile));
 
             assertTrue("packNameFilter should include file (when absolutized)", packNameFilter.includes(baseDir.absolutize(), packFile.absolutize()));
 

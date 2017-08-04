@@ -82,8 +82,10 @@ public final class PathOrPackIdFilter implements PackIdFilter {
 
     public boolean includes(PackId packId) {
         if (isPathFilter()) {
-            return SelectorUtils.matchPath(this.pathPattern, packId.getInstallationPath() + ".zip") ||
-                    SelectorUtils.matchPath(this.pathPattern, packId.getInstallationPath() + ".jar");
+            return SelectorUtils.matchPath(normalizeSlashes(this.pathPattern),
+                    packId.getInstallationPath() + ".zip") ||
+                    SelectorUtils.matchPath(normalizeSlashes(this.pathPattern),
+                            packId.getInstallationPath() + ".jar");
 
         } else {
             boolean includes = true;
@@ -100,10 +102,16 @@ public final class PathOrPackIdFilter implements PackIdFilter {
         }
     }
 
+    private static String normalizeSlashes(String path) {
+        return path.replace("\\", "/");
+    }
+
     public boolean includes(FilePath basePath, FilePath filePath) {
         if (isPathFilter()) {
-            String relPath = PathUtil.getRelativeFilePath(basePath.getRemote(), filePath.getRemote());
-            return SelectorUtils.matchPath(this.pathPattern, relPath);
+            String relPath = PathUtil.getRelativeFilePath(normalizeSlashes(basePath.getRemote()),
+                    normalizeSlashes(filePath.getRemote()), "/");
+            System.out.println("relPath: " + relPath);
+            return SelectorUtils.matchPath(normalizeSlashes(this.pathPattern), relPath);
         } else {
             return false;
         }
