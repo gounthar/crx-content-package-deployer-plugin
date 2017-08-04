@@ -27,6 +27,8 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import java.io.File;
+
 import hudson.FilePath;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.PackIdFilter;
@@ -83,9 +85,9 @@ public final class PathOrPackIdFilter implements PackIdFilter {
     public boolean includes(PackId packId) {
         if (isPathFilter()) {
             return SelectorUtils.matchPath(normalizeSlashes(this.pathPattern),
-                    packId.getInstallationPath() + ".zip") ||
+                    normalizeSlashes(packId.getInstallationPath() + ".zip")) ||
                     SelectorUtils.matchPath(normalizeSlashes(this.pathPattern),
-                            packId.getInstallationPath() + ".jar");
+                            normalizeSlashes(packId.getInstallationPath() + ".jar"));
 
         } else {
             boolean includes = true;
@@ -108,13 +110,17 @@ public final class PathOrPackIdFilter implements PackIdFilter {
      * @return the normalized path
      */
     private static String normalizeSlashes(String path) {
-        return path.replace("\\", "/");
+        if (File.separatorChar == '\\') {
+            return path.replace("/", "\\");
+        } else {
+            return path.replace("\\", "/");
+        }
     }
 
     public boolean includes(FilePath basePath, FilePath filePath) {
         if (isPathFilter()) {
             String relPath = PathUtil.getRelativeFilePath(normalizeSlashes(basePath.getRemote()),
-                    normalizeSlashes(filePath.getRemote()), "/");
+                    normalizeSlashes(filePath.getRemote()));
             return SelectorUtils.matchPath(normalizeSlashes(this.pathPattern), relPath);
         } else {
             return false;
