@@ -43,7 +43,7 @@
         </f:entry>
 
         <f:entry title="Forbidden AC Handling Modes" field="forbiddenACHandlingModeSet">
-            <f:select />
+            <f:select default="${descriptor.ACMODE_SKIP_VALIDATION}"/>
         </f:entry>
 
         <f:entry title="Forbidden Filter Root Prefixes" field="forbiddenFilterRootPrefixes">

@@ -170,10 +170,7 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory>
 
     @SuppressWarnings("unchecked")
     private static Descriptor<GraniteAHCFactory> getFactoryDescriptor() {
-        Jenkins j = Jenkins.getInstance();
-        if (j == null) {
-            throw new AssertionError(GraniteAHCFactory.class + " is missing its Jenkins");
-        }
+        Jenkins j = Jenkins.getActiveInstance();
         return j.getDescriptorOrDie(GraniteAHCFactory.class);
     }
 

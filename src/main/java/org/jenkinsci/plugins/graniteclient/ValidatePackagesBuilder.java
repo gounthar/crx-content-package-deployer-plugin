@@ -27,10 +27,22 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.Nonnull;
+
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.*;
+import hudson.model.AbstractProject;
+import hudson.model.Result;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
@@ -39,13 +51,12 @@ import net.adamcin.granite.client.packman.ACHandling;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.WspFilter;
 import net.adamcin.granite.client.packman.validation.DefaultValidationOptions;
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
-
-import java.io.IOException;
-import java.util.*;
-import javax.annotation.Nonnull;
 
 /**
  * Implementation of the "Validate CRX Content Packages" build step
@@ -53,15 +64,19 @@ import javax.annotation.Nonnull;
 public class ValidatePackagesBuilder extends AbstractBuildStep {
 
     private String packageIdFilters;
-    private String localDirectory;
-    private String validationFilter;
-    private boolean allowNonCoveredRoots;
-    private String forbiddenExtensions;
-    private String forbiddenACHandlingModeSet;
-    private String forbiddenFilterRootPrefixes;
-    private String pathsDeniedForInclusion;
+    private String localDirectory = null;
+    private String validationFilter = null;
+    private boolean allowNonCoveredRoots = false;
+    private String forbiddenExtensions = null;
+    private String forbiddenACHandlingModeSet = null;
+    private String forbiddenFilterRootPrefixes = null;
+    private String pathsDeniedForInclusion = null;
 
     @DataBoundConstructor
+    public ValidatePackagesBuilder(String packageIdFilters) {
+        this.packageIdFilters = packageIdFilters;
+    }
+
     public ValidatePackagesBuilder(String packageIdFilters, String localDirectory, String validationFilter,
                                    boolean allowNonCoveredRoots, String forbiddenExtensions, String forbiddenACHandlingModeSet,
                                    String forbiddenFilterRootPrefixes, String pathsDeniedForInclusion) {
@@ -84,27 +99,30 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
         }
     }
 
+    @DataBoundSetter
     public void setPackageIdFilters(String packageIdFilters) {
         this.packageIdFilters = packageIdFilters;
     }
 
 
     public String getLocalDirectory() {
-        if (localDirectory == null || localDirectory.trim().isEmpty()) {
+        if (StringUtils.isBlank(localDirectory)) {
             return ".";
         } else {
             return localDirectory.trim();
         }
     }
 
+    @DataBoundSetter
     public void setLocalDirectory(String localDirectory) {
         this.localDirectory = localDirectory;
     }
 
     public String getValidationFilter() {
-        return validationFilter;
+        return validationFilter == null ? "" : validationFilter;
     }
 
+    @DataBoundSetter
     public void setValidationFilter(String validationFilter) {
         this.validationFilter = validationFilter;
     }
@@ -113,72 +131,78 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
         return allowNonCoveredRoots;
     }
 
+    @DataBoundSetter
     public void setAllowNonCoveredRoots(boolean allowNonCoveredRoots) {
         this.allowNonCoveredRoots = allowNonCoveredRoots;
     }
 
     public String getForbiddenExtensions() {
-        return forbiddenExtensions;
+        return forbiddenExtensions == null ? "" : forbiddenExtensions;
     }
 
+    @DataBoundSetter
     public void setForbiddenExtensions(String forbiddenExtensions) {
         this.forbiddenExtensions = forbiddenExtensions;
     }
 
     public String getForbiddenACHandlingModeSet() {
-        return forbiddenACHandlingModeSet;
+        return forbiddenACHandlingModeSet == null
+                ? ForbiddenACHandlingModeSet.SKIP_VALIDATION.name() : forbiddenACHandlingModeSet;
     }
 
+    @DataBoundSetter
     public void setForbiddenACHandlingModeSet(String forbiddenACHandlingModeSet) {
         this.forbiddenACHandlingModeSet = forbiddenACHandlingModeSet;
     }
 
     public String getForbiddenFilterRootPrefixes() {
-        return forbiddenFilterRootPrefixes;
+        return forbiddenFilterRootPrefixes == null ? "" : forbiddenFilterRootPrefixes;
     }
 
+    @DataBoundSetter
     public void setForbiddenFilterRootPrefixes(String forbiddenFilterRootPrefixes) {
         this.forbiddenFilterRootPrefixes = forbiddenFilterRootPrefixes;
     }
 
     public String getPathsDeniedForInclusion() {
-        return pathsDeniedForInclusion;
+        return pathsDeniedForInclusion == null ? "" : pathsDeniedForInclusion;
     }
 
+    @DataBoundSetter
     public void setPathsDeniedForInclusion(String pathsDeniedForInclusion) {
         this.pathsDeniedForInclusion = pathsDeniedForInclusion;
     }
 
-    public String getValidationFilter(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
+    public String getValidationFilter(Run<?, ?> build, FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
         try {
-            return TokenMacro.expandAll(build, listener, getValidationFilter());
+            return TokenMacro.expandAll(build, workspace, listener, getValidationFilter());
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getValidationFilter());
         }
         return getValidationFilter();
     }
 
-    public String getForbiddenExtensions(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
+    public String getForbiddenExtensions(Run<?, ?> build, FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
         try {
-            return TokenMacro.expandAll(build, listener, getForbiddenExtensions());
+            return TokenMacro.expandAll(build, workspace, listener, getForbiddenExtensions());
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getForbiddenExtensions());
         }
         return getForbiddenExtensions();
     }
 
-    public String getPathsDeniedForInclusion(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
+    public String getPathsDeniedForInclusion(Run<?, ?> build, FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
         try {
-            return TokenMacro.expandAll(build, listener, getPathsDeniedForInclusion());
+            return TokenMacro.expandAll(build, workspace, listener, getPathsDeniedForInclusion());
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getPathsDeniedForInclusion());
         }
         return getPathsDeniedForInclusion();
     }
 
-    public String getForbiddenFilterRootPrefixes(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
+    public String getForbiddenFilterRootPrefixes(Run<?, ?> build, FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
         try {
-            return TokenMacro.expandAll(build, listener, getForbiddenFilterRootPrefixes());
+            return TokenMacro.expandAll(build, workspace, listener, getForbiddenFilterRootPrefixes());
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getForbiddenFilterRootPrefixes());
         }
@@ -189,25 +213,27 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
         return ForbiddenACHandlingModeSet.safeValueOf(getForbiddenACHandlingModeSet()).getForbiddenModes();
     }
 
-    private DefaultValidationOptions getValidationOptions(AbstractBuild<?, ?> build, TaskListener listener)
+    private DefaultValidationOptions getValidationOptions(Run<?, ?> build, FilePath workspace, TaskListener listener)
             throws IOException, InterruptedException {
         DefaultValidationOptions options = new DefaultValidationOptions();
         options.setAllowNonCoveredRoots(isAllowNonCoveredRoots());
-        options.setForbiddenExtensions(Arrays.asList(getForbiddenExtensions(build, listener).split("\r?\n")));
-        options.setPathsDeniedForInclusion(Arrays.asList(getPathsDeniedForInclusion(build, listener).split("\r?\n")));
+        options.setForbiddenExtensions(Arrays.asList(getForbiddenExtensions(build, workspace, listener).split("\r?\n")));
+        options.setPathsDeniedForInclusion(Arrays.asList(getPathsDeniedForInclusion(build, workspace, listener).split("\r?\n")));
         options.setForbiddenACHandlingModes(getForbiddenACHandlingModes());
-        options.setForbiddenFilterRootPrefixes(Arrays.asList(getForbiddenFilterRootPrefixes(build, listener).split("\r?\n")));
+        options.setForbiddenFilterRootPrefixes(Arrays.asList(getForbiddenFilterRootPrefixes(build, workspace, listener).split("\r?\n")));
 
-        WspFilter filter = WspFilter.parseSimpleSpec(getValidationFilter(build, listener));
+
+        String wspFilterString = getValidationFilter(build, workspace, listener);
+        WspFilter filter = StringUtils.isBlank(wspFilterString)
+                ? null : WspFilter.parseSimpleSpec(getValidationFilter(build, workspace, listener));
         if (filter != null && !filter.getRoots().isEmpty()) {
             options.setValidationFilter(filter);
         }
         return options;
     }
 
-    @Override
-    boolean perform(@Nonnull AbstractBuild<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
-                    @Nonnull BuildListener listener) throws InterruptedException, IOException {
+    public void perform(@Nonnull Run<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
+                    @Nonnull TaskListener listener) throws InterruptedException, IOException {
 
         Result result = build.getResult();
         if (result == null) {
@@ -216,7 +242,7 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
 
         listener.getLogger().println("Validating packages.");
 
-        DefaultValidationOptions options = getValidationOptions(build, listener);
+        DefaultValidationOptions options = getValidationOptions(build, workspace, listener);
         for (PackTuple selectedPackage : selectPackages(build, workspace, listener)) {
             listener.getLogger().printf("Validating package %s at path %s.%n",
                     selectedPackage.getPackId(), selectedPackage.getFilePath());
@@ -227,8 +253,6 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
             result = result.combine(selectedPackage.getFilePath().act(callable));
             build.setResult(result);
         }
-
-        return result.isBetterOrEqualTo(Result.UNSTABLE);
     }
 
     static class PackTuple {
@@ -255,12 +279,12 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
         }
     }
 
-    private List<PackTuple> selectPackages(@Nonnull final AbstractBuild<?, ?> build, @Nonnull final FilePath workspace,
-                                           @Nonnull final BuildListener listener)
+    private List<PackTuple> selectPackages(@Nonnull final Run<?, ?> build, @Nonnull final FilePath workspace,
+                                           @Nonnull final TaskListener listener)
             throws IOException, InterruptedException {
         List<PackTuple> found = new ArrayList<PackTuple>();
 
-        final String fLocalDirectory = getLocalDirectory(build, listener);
+        final String fLocalDirectory = getLocalDirectory(build, workspace, listener);
         FilePath dir = workspace.child(fLocalDirectory);
 
         try {
@@ -282,7 +306,7 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
         }
 
         List<PackTuple> selected = new ArrayList<PackTuple>();
-        for (Map.Entry<String, PathOrPackIdFilter> filterEntry : listPackageFilters(build, listener).entrySet()) {
+        for (Map.Entry<String, PathOrPackIdFilter> filterEntry : listPackageFilters(build, workspace, listener).entrySet()) {
             boolean matched = false;
             for (PackTuple entry : found) {
                 if (!entry.isPathOnly() &&
@@ -303,14 +327,14 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
         return Collections.unmodifiableList(selected);
     }
 
-    public String getPackageIdFilters(AbstractBuild<?, ?> build, TaskListener listener) throws Exception {
-        return TokenMacro.expandAll(build, listener, getPackageIdFilters());
+    public String getPackageIdFilters(Run<?, ?> build, FilePath workspace, TaskListener listener) throws Exception {
+        return TokenMacro.expandAll(build, workspace, listener, getPackageIdFilters());
     }
 
-    private Map<String, PathOrPackIdFilter> listPackageFilters(AbstractBuild<?, ?> build, TaskListener listener) {
+    private Map<String, PathOrPackIdFilter> listPackageFilters(Run<?, ?> build, FilePath workspace, TaskListener listener) {
         Map<String, PathOrPackIdFilter> filters = new LinkedHashMap<String, PathOrPackIdFilter>();
         try {
-            for (String filter : BaseUrlUtil.splitByNewline(getPackageIdFilters(build, listener))) {
+            for (String filter : BaseUrlUtil.splitByNewline(getPackageIdFilters(build, workspace, listener))) {
                 if (filter.trim().length() > 0) {
                     filters.put(filter, PathOrPackIdFilter.parse(filter));
                 }
@@ -321,9 +345,9 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
         return Collections.unmodifiableMap(filters);
     }
 
-    private String getLocalDirectory(AbstractBuild<?, ?> build, TaskListener listener) {
+    private String getLocalDirectory(Run<?, ?> build, FilePath workspace, TaskListener listener) {
         try {
-            return TokenMacro.expandAll(build, listener, getLocalDirectory());
+            return TokenMacro.expandAll(build, workspace, listener, getLocalDirectory());
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getLocalDirectory());
         }
@@ -336,8 +360,10 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
         return (DescriptorImpl) super.getDescriptor();
     }
 
+    @Symbol("crxValidate")
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
+        public static final String ACMODE_SKIP_VALIDATION = ForbiddenACHandlingModeSet.SKIP_VALIDATION.name();
 
         public DescriptorImpl() {
             load();
@@ -405,7 +431,7 @@ public class ValidatePackagesBuilder extends AbstractBuildStep {
         }
 
         static ForbiddenACHandlingModeSet safeValueOf(String modeSetName) {
-            if (modeSetName == null || modeSetName.isEmpty()) {
+            if (StringUtils.isEmpty(modeSetName)) {
                 return forEmptySelection();
             } else {
                 try {

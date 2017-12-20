@@ -1,30 +1,11 @@
 package org.jenkinsci.plugins.graniteclient;
 
-import java.io.IOException;
-import javax.annotation.Nonnull;
-
-import hudson.AbortException;
-import hudson.FilePath;
-import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
 import hudson.tasks.Builder;
+import jenkins.tasks.SimpleBuildStep;
 
 /**
- * Base class with some usefulness
+ * Base class with no more usefulness
  */
-abstract class AbstractBuildStep extends Builder {
+abstract class AbstractBuildStep extends Builder implements SimpleBuildStep {
 
-    @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
-            throws InterruptedException, IOException {
-        FilePath workspace = build.getWorkspace();
-        if (workspace == null) {
-            throw new AbortException("no workspace for " + build);
-        }
-        return this.perform(build, workspace, launcher, listener);
-    }
-
-    abstract boolean perform(@Nonnull AbstractBuild<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
-                             @Nonnull BuildListener listener) throws InterruptedException, IOException;
 }

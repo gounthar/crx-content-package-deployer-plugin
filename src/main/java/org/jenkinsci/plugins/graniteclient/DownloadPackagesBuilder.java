@@ -38,20 +38,22 @@ import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxMode
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
 import hudson.model.Item;
 import hudson.model.Result;
+import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import net.adamcin.granite.client.packman.PackId;
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
 /**
@@ -60,15 +62,20 @@ import org.kohsuke.stapler.QueryParameter;
 public class DownloadPackagesBuilder extends AbstractBuildStep {
     private String packageIds;
     private String baseUrl;
-    private String credentialsId;
-    private long requestTimeout;
-    private long serviceTimeout;
-    private long waitDelay;
-    private String localDirectory;
-    private boolean ignoreErrors;
-    private boolean rebuild;
+    private String credentialsId = null;
+    private long requestTimeout = 0L;
+    private long serviceTimeout = 0L;
+    private long waitDelay = 0L;
+    private String localDirectory = null;
+    private boolean ignoreErrors = false;
+    private boolean rebuild = false;
 
     @DataBoundConstructor
+    public DownloadPackagesBuilder(String packageIds, String baseUrl) {
+        this.packageIds = packageIds;
+        this.baseUrl = baseUrl;
+    }
+
     public DownloadPackagesBuilder(String packageIds, String baseUrl, String credentialsId,
                                    long requestTimeout, long serviceTimeout, long waitDelay,
                                    String localDirectory, boolean ignoreErrors,
@@ -84,9 +91,8 @@ public class DownloadPackagesBuilder extends AbstractBuildStep {
         this.rebuild = rebuild;
     }
 
-    @Override
-    boolean perform(@Nonnull AbstractBuild<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
-                    @Nonnull BuildListener listener) throws InterruptedException, IOException {
+    public void perform(@Nonnull Run<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
+                        @Nonnull TaskListener listener) throws InterruptedException, IOException {
 
         Result result = build.getResult();
         if (result == null) {
@@ -94,21 +100,21 @@ public class DownloadPackagesBuilder extends AbstractBuildStep {
         }
 
         GraniteClientConfig clientConfig = new GraniteClientConfig(GraniteAHCFactory.getGlobalConfig(),
-                getBaseUrl(build, listener), credentialsId, requestTimeout, serviceTimeout, waitDelay);
+                getBaseUrl(build, workspace, listener), credentialsId, requestTimeout, serviceTimeout, waitDelay);
 
         clientConfig.resolveCredentials();
 
         DownloadPackagesCallable callable = new DownloadPackagesCallable(clientConfig, listener,
-                listPackIds(build, listener), ignoreErrors, rebuild);
+                listPackIds(build, workspace, listener), ignoreErrors, rebuild);
 
-        final String fLocalDirectory = getLocalDirectory(build, listener);
+        final String fLocalDirectory = getLocalDirectory(build, workspace, listener);
         final Result actResult = workspace.child(fLocalDirectory).act(callable);
 
         if (actResult != null) {
             result = result.combine(actResult);
         }
 
-        return result.isBetterOrEqualTo(Result.UNSTABLE);
+        build.setResult(result);
     }
 
     public String getPackageIds() {
@@ -119,18 +125,18 @@ public class DownloadPackagesBuilder extends AbstractBuildStep {
         }
     }
 
-    public String getPackageIds(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
+    public String getPackageIds(Run<?, ?> build, FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
         try {
-            return TokenMacro.expandAll(build, listener, getPackageIds());
+            return TokenMacro.expandAll(build, workspace, listener, getPackageIds());
         } catch (MacroEvaluationException e) {
             listener.error("Failed to expand macros in Package ID: %s", getPackageIds());
             return getPackageIds();
         }
     }
 
-    private String getBaseUrl(AbstractBuild<?, ?> build, TaskListener listener) {
+    private String getBaseUrl(Run<?, ?> build, FilePath workspace, TaskListener listener) {
         try {
-            return TokenMacro.expandAll(build, listener, getBaseUrl());
+            return TokenMacro.expandAll(build, workspace, listener, getBaseUrl());
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getBaseUrl());
         }
@@ -138,26 +144,31 @@ public class DownloadPackagesBuilder extends AbstractBuildStep {
     }
 
     public String getCredentialsId() {
-        return credentialsId;
+        return credentialsId == null ? "" : credentialsId;
     }
 
+    @DataBoundSetter
     public void setCredentialsId(String credentialsId) {
-        this.credentialsId = credentialsId;
+        if (StringUtils.isBlank(credentialsId)) {
+            this.credentialsId = null;
+        } else {
+            this.credentialsId = credentialsId;
+        }
     }
 
-    private String getLocalDirectory(AbstractBuild<?, ?> build, TaskListener listener) {
+    private String getLocalDirectory(Run<?, ?> build, FilePath workspace, TaskListener listener) {
         try {
-            return TokenMacro.expandAll(build, listener, getLocalDirectory());
+            return TokenMacro.expandAll(build, workspace, listener, getLocalDirectory());
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getLocalDirectory());
         }
         return getLocalDirectory();
     }
 
-    public List<PackId> listPackIds(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
+    public List<PackId> listPackIds(Run<?, ?> build, FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
         List<PackId> packIds = new ArrayList<PackId>();
 
-        for (String packageId : BaseUrlUtil.splitByNewline(getPackageIds(build, listener))) {
+        for (String packageId : BaseUrlUtil.splitByNewline(getPackageIds(build, workspace, listener))) {
             PackId packId = PackId.parsePid(packageId);
             if (packId != null) {
                 packIds.add(packId);
@@ -187,6 +198,7 @@ public class DownloadPackagesBuilder extends AbstractBuildStep {
         return waitDelay;
     }
 
+    @DataBoundSetter
     public void setWaitDelay(long waitDelay) {
         this.waitDelay = waitDelay;
     }
@@ -200,41 +212,54 @@ public class DownloadPackagesBuilder extends AbstractBuildStep {
     }
 
     public String getLocalDirectory() {
-        if (localDirectory == null || localDirectory.trim().isEmpty()) {
+        if (StringUtils.isBlank(localDirectory)) {
             return ".";
         } else {
             return localDirectory;
         }
     }
 
+    @DataBoundSetter
     public void setLocalDirectory(String localDirectory) {
         this.localDirectory = localDirectory;
     }
 
+    @DataBoundSetter
     public void setPackageIds(String packageIds) {
         this.packageIds = packageIds;
     }
 
+    @DataBoundSetter
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
     }
 
+    @DataBoundSetter
     public void setIgnoreErrors(boolean ignoreErrors) {
         this.ignoreErrors = ignoreErrors;
     }
 
+    @DataBoundSetter
     public void setRebuild(boolean rebuild) {
         this.rebuild = rebuild;
     }
 
+    @DataBoundSetter
     public void setRequestTimeout(long requestTimeout) {
         this.requestTimeout = requestTimeout;
     }
 
+    @DataBoundSetter
     public void setServiceTimeout(long serviceTimeout) {
         this.serviceTimeout = serviceTimeout;
     }
 
+    @Override
+    public DescriptorImpl getDescriptor() {
+        return (DescriptorImpl) super.getDescriptor();
+    }
+
+    @Symbol("crxDownload")
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
 

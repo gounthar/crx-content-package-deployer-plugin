@@ -40,20 +40,22 @@ import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxMode
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
 import hudson.model.Item;
 import hudson.model.Result;
+import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import net.adamcin.granite.client.packman.PackId;
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
 /**
@@ -62,13 +64,18 @@ import org.kohsuke.stapler.QueryParameter;
 public class ReplicatePackagesBuilder extends AbstractBuildStep {
     private String packageIds;
     private String baseUrls;
-    private String credentialsId;
-    private long requestTimeout;
-    private long serviceTimeout;
-    private long waitDelay;
-    private boolean ignoreErrors;
+    private String credentialsId = null;
+    private long requestTimeout = 0L;
+    private long serviceTimeout = 0L;
+    private long waitDelay = 0L;
+    private boolean ignoreErrors = false;
 
     @DataBoundConstructor
+    public ReplicatePackagesBuilder(String packageIds, String baseUrls) {
+        this.packageIds = packageIds;
+        this.baseUrls = baseUrls;
+    }
+
     public ReplicatePackagesBuilder(String packageIds, String baseUrls, String credentialsId,
                                     long requestTimeout, long serviceTimeout, long waitDelay,
                                     boolean ignoreErrors) {
@@ -81,16 +88,15 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
         this.ignoreErrors = ignoreErrors;
     }
 
-    @Override
-    boolean perform(@Nonnull AbstractBuild<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
-                    @Nonnull BuildListener listener) throws InterruptedException, IOException {
+    public void perform(@Nonnull Run<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
+                        @Nonnull TaskListener listener) throws InterruptedException, IOException {
 
         Result result = build.getResult();
         if (result == null) {
             result = Result.SUCCESS;
         }
 
-        for (String baseUrl : listBaseUrls(build, listener)) {
+        for (String baseUrl : listBaseUrls(build, workspace, listener)) {
             if (result.isBetterOrEqualTo(Result.UNSTABLE)) {
                 GraniteClientConfig clientConfig =
                         new GraniteClientConfig(GraniteAHCFactory.getGlobalConfig(), baseUrl,
@@ -99,7 +105,7 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
                 clientConfig.resolveCredentials();
 
                 ReplicatePackagesClientCallable callable = new ReplicatePackagesClientCallable(
-                        listener, listPackIds(build, listener), ignoreErrors);
+                        listener, listPackIds(build, workspace, listener), ignoreErrors);
 
                 try {
                     result = result.combine(GraniteClientExecutor.execute(callable, clientConfig, listener));
@@ -115,7 +121,7 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
             }
         }
 
-        return result.isBetterOrEqualTo(Result.UNSTABLE);
+        build.setResult(result);
     }
 
     public String getPackageIds() {
@@ -126,9 +132,9 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
         }
     }
 
-    public String getPackageIds(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
+    public String getPackageIds(Run<?, ?> build, FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
         try {
-            return TokenMacro.expandAll(build, listener, getPackageIds());
+            return TokenMacro.expandAll(build, workspace, listener, getPackageIds());
         } catch (MacroEvaluationException e) {
             listener.error("Failed to expand macros in Package ID: %s", getPackageIds());
             return getPackageIds();
@@ -144,13 +150,14 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
         }
     }
 
+    @DataBoundSetter
     public void setBaseUrls(String baseUrls) {
         this.baseUrls = baseUrls;
     }
 
-    private List<String> listBaseUrls(AbstractBuild<?, ?> build, TaskListener listener) {
+    private List<String> listBaseUrls(Run<?, ?> build, FilePath workspace, TaskListener listener) {
         try {
-            return splitByNewline(TokenMacro.expandAll(build, listener, getBaseUrls()));
+            return splitByNewline(TokenMacro.expandAll(build, workspace, listener, getBaseUrls()));
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getBaseUrls());
         }
@@ -158,17 +165,22 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
     }
 
     public String getCredentialsId() {
-        return credentialsId;
+        return credentialsId == null ? "" : credentialsId;
     }
 
+    @DataBoundSetter
     public void setCredentialsId(String credentialsId) {
-        this.credentialsId = credentialsId;
+        if (StringUtils.isBlank(credentialsId)) {
+            this.credentialsId = null;
+        } else {
+            this.credentialsId = credentialsId;
+        }
     }
 
-    public List<PackId> listPackIds(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
+    public List<PackId> listPackIds(Run<?, ?> build, FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
         List<PackId> packIds = new ArrayList<PackId>();
 
-        for (String packageId : BaseUrlUtil.splitByNewline(getPackageIds(build, listener))) {
+        for (String packageId : BaseUrlUtil.splitByNewline(getPackageIds(build, workspace, listener))) {
             PackId packId = PackId.parsePid(packageId);
             if (packId != null) {
                 packIds.add(packId);
@@ -190,18 +202,22 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
         return ignoreErrors;
     }
 
+    @DataBoundSetter
     public void setPackageIds(String packageIds) {
         this.packageIds = packageIds;
     }
 
+    @DataBoundSetter
     public void setIgnoreErrors(boolean ignoreErrors) {
         this.ignoreErrors = ignoreErrors;
     }
 
+    @DataBoundSetter
     public void setRequestTimeout(long requestTimeout) {
         this.requestTimeout = requestTimeout;
     }
 
+    @DataBoundSetter
     public void setServiceTimeout(long serviceTimeout) {
         this.serviceTimeout = serviceTimeout;
     }
@@ -210,10 +226,12 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
         return waitDelay;
     }
 
+    @DataBoundSetter
     public void setWaitDelay(long waitDelay) {
         this.waitDelay = waitDelay;
     }
 
+    @Symbol("crxReplicate")
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
 

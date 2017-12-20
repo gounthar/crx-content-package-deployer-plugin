@@ -37,7 +37,7 @@
     </f:entry>
 
     <f:entry title="Override AC Handling?" field="acHandling">
-        <f:select />
+        <f:select default="${descriptor.ACHANDLING_DEFER_VALUE}"/>
     </f:entry>
 
     <f:advanced title="Package Installation Options">

@@ -63,6 +63,7 @@ import net.adamcin.httpsig.api.Keychain;
 import net.adamcin.httpsig.ssh.jce.KeyFormat;
 import net.adamcin.httpsig.ssh.jce.SSHKey;
 import net.adamcin.httpsig.ssh.jce.UserKeysFingerprintKeyId;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * Wrapper for {@link SSHUserPrivateKey} credentials implementing {@link IdCredentials} for selection widgets
@@ -75,7 +76,7 @@ abstract class GraniteNamedIdCredentials implements IdCredentials {
     @CheckForNull
     public static Credentials getCredentialsById(String credentialsId) {
         if (sanityCheck()) {
-            if (credentialsId != null) {
+            if (StringUtils.isNotBlank(credentialsId)) {
                 CredentialsMatcher matcher = new CredentialsIdMatcher(credentialsId);
                 List<Credentials> credentialsList =
                         DomainCredentials.getCredentials(

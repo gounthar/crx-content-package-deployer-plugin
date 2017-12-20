@@ -48,11 +48,10 @@ import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxMode
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
 import hudson.model.Item;
 import hudson.model.Result;
+import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
 import hudson.tasks.BuildStepDescriptor;
@@ -63,9 +62,12 @@ import jenkins.MasterToSlaveFileCallable;
 import net.adamcin.granite.client.packman.ACHandling;
 import net.adamcin.granite.client.packman.PackId;
 import net.sf.json.JSONObject;
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
@@ -73,23 +75,27 @@ import org.kohsuke.stapler.StaplerRequest;
  * Implementation of the "Deploy Content Packages to CRX" build step
  */
 public class DeployPackagesBuilder extends AbstractBuildStep {
-    private static final String ACHANDLING_DEFER_VALUE = "_DEFER"; // must be upper case
 
     private String packageIdFilters;
     private String baseUrls;
-    private String credentialsId;
-    private String localDirectory;
-    private String behavior;
-    private boolean recursive;
-    private boolean replicate;
-    private int autosave;
-    private String acHandling;
-    private boolean disableForJobTesting;
-    private long requestTimeout;
-    private long serviceTimeout;
-    private long waitDelay;
+    private String credentialsId = null;
+    private String localDirectory = null;
+    private String behavior = null;
+    private boolean recursive = false;
+    private boolean replicate = false;
+    private int autosave = 1024;
+    private String acHandling = null;
+    private boolean disableForJobTesting = false;
+    private long requestTimeout = 0L;
+    private long serviceTimeout = 0L;
+    private long waitDelay = 0L;
 
     @DataBoundConstructor
+    public DeployPackagesBuilder(@Nonnull String packageIdFilters, @Nonnull String baseUrls) {
+        this.packageIdFilters = packageIdFilters;
+        this.baseUrls = baseUrls;
+    }
+
     public DeployPackagesBuilder(String packageIdFilters, String baseUrls, String credentialsId,
                                  String localDirectory, String behavior, boolean recursive, boolean replicate,
                                  int autosave, String acHandling, boolean disableForJobTesting, long requestTimeout,
@@ -118,7 +124,8 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         }
     }
 
-    public void setPackageIdFilters(String packageIdFilters) {
+    @DataBoundSetter
+    public void setPackageIdFilters(@Nonnull String packageIdFilters) {
         this.packageIdFilters = packageIdFilters;
     }
 
@@ -131,26 +138,33 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         }
     }
 
+    @DataBoundSetter
     public void setBaseUrls(String baseUrls) {
         this.baseUrls = baseUrls;
     }
 
     public String getCredentialsId() {
-        return credentialsId;
+        return credentialsId == null ? "" : credentialsId;
     }
 
+    @DataBoundSetter
     public void setCredentialsId(String credentialsId) {
-        this.credentialsId = credentialsId;
+        if (StringUtils.isBlank(credentialsId)) {
+            this.credentialsId = null;
+        } else {
+            this.credentialsId = credentialsId;
+        }
     }
 
     public String getLocalDirectory() {
-        if (localDirectory == null || localDirectory.trim().isEmpty()) {
+        if (StringUtils.isBlank(localDirectory)) {
             return ".";
         } else {
             return localDirectory.trim();
         }
     }
 
+    @DataBoundSetter
     public void setLocalDirectory(String localDirectory) {
         this.localDirectory = localDirectory;
     }
@@ -159,6 +173,7 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         return behavior;
     }
 
+    @DataBoundSetter
     public void setBehavior(String behavior) {
         this.behavior = behavior;
     }
@@ -167,6 +182,7 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         return replicate;
     }
 
+    @DataBoundSetter
     public void setReplicate(boolean replicate) {
         this.replicate = replicate;
     }
@@ -175,6 +191,7 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         return recursive;
     }
 
+    @DataBoundSetter
     public void setRecursive(boolean recursive) {
         this.recursive = recursive;
     }
@@ -183,26 +200,33 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         return autosave;
     }
 
+    @DataBoundSetter
     public void setAutosave(int autosave) {
         this.autosave = autosave;
     }
 
     public String getAcHandling() {
         if (acHandling == null) {
-            return acHandling;
+            return DescriptorImpl.ACHANDLING_DEFER_VALUE;
         } else {
             return acHandling.toUpperCase();
         }
     }
 
+    @DataBoundSetter
     public void setAcHandling(String acHandling) {
-        this.acHandling = acHandling;
+        if (DescriptorImpl.ACHANDLING_DEFER_VALUE.equals(acHandling)) {
+            this.acHandling = null;
+        } else {
+            this.acHandling = acHandling;
+        }
     }
 
     public boolean isDisableForJobTesting() {
         return disableForJobTesting;
     }
 
+    @DataBoundSetter
     public void setDisableForJobTesting(boolean disableForJobTesting) {
         this.disableForJobTesting = disableForJobTesting;
     }
@@ -211,6 +235,7 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         return requestTimeout;
     }
 
+    @DataBoundSetter
     public void setRequestTimeout(long requestTimeout) {
         this.requestTimeout = requestTimeout;
     }
@@ -219,6 +244,7 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         return serviceTimeout;
     }
 
+    @DataBoundSetter
     public void setServiceTimeout(long serviceTimeout) {
         this.serviceTimeout = serviceTimeout;
     }
@@ -227,13 +253,14 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         return waitDelay;
     }
 
+    @DataBoundSetter
     public void setWaitDelay(long waitDelay) {
         this.waitDelay = waitDelay;
     }
 
     public PackageInstallOptions getPackageInstallOptions() {
         ACHandling _acHandling = null;
-        if (getAcHandling() != null) {
+        if (getAcHandling() != null && !DescriptorImpl.ACHANDLING_DEFER_VALUE.equals(getAcHandling())) {
             if (ACHandling.IGNORE.name().equals(getAcHandling())) {
                 _acHandling = ACHandling.IGNORE;
             } else if (ACHandling.MERGE.name().equals(getAcHandling())) {
@@ -266,9 +293,8 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         return _behavior;
     }
 
-    @Override
-    boolean perform(@Nonnull AbstractBuild<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
-                    @Nonnull BuildListener listener) throws InterruptedException, IOException {
+    public void perform(@Nonnull Run<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
+                        @Nonnull TaskListener listener) throws InterruptedException, IOException {
 
         Result result = build.getResult();
         if (result == null) {
@@ -279,7 +305,7 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
             listener.getLogger().println("DEBUG: *** package deployment disabled for testing ***");
         }
 
-        for (String baseUrl : listBaseUrls(build, listener)) {
+        for (String baseUrl : listBaseUrls(build, workspace, listener)) {
             if (result.isBetterOrEqualTo(Result.UNSTABLE)) {
                 GraniteClientConfig clientConfig =
                         new GraniteClientConfig(GraniteAHCFactory.getGlobalConfig(),
@@ -290,7 +316,7 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
                 listener.getLogger().printf("Deploying packages to %s%n", clientConfig.getBaseUrl());
                 for (Map.Entry<PackId, FilePath> selectedPackage : selectPackages(build, workspace, listener).entrySet()) {
                     if (!result.isBetterOrEqualTo(Result.UNSTABLE)) {
-                        return false;
+                        return;
                     }
                     FilePath.FileCallable<Result> callable = null;
                     if (disableForJobTesting) {
@@ -309,17 +335,15 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
                 }
             }
         }
-
-        return result.isBetterOrEqualTo(Result.UNSTABLE);
     }
 
-    private Map<PackId, FilePath> selectPackages(@Nonnull final AbstractBuild<?, ?> build,
+    private Map<PackId, FilePath> selectPackages(@Nonnull final Run<?, ?> build,
                                                  @Nonnull final FilePath workspace,
-                                                 @Nonnull final BuildListener listener)
+                                                 @Nonnull final TaskListener listener)
             throws IOException, InterruptedException {
         Map<PackId, FilePath> found = new HashMap<PackId, FilePath>();
 
-        final String fLocalDirectory = getLocalDirectory(build, listener);
+        final String fLocalDirectory = getLocalDirectory(build, workspace, listener);
         FilePath dir = workspace.child(fLocalDirectory);
 
         try {
@@ -354,7 +378,7 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         }
 
         Map<PackId, FilePath> selected = new LinkedHashMap<PackId, FilePath>();
-        for (Map.Entry<String, PathOrPackIdFilter> filterEntry : listPackageFilters(build, listener).entrySet()) {
+        for (Map.Entry<String, PathOrPackIdFilter> filterEntry : listPackageFilters(build, workspace, listener).entrySet()) {
             boolean matched = false;
             for (Map.Entry<PackId, FilePath> entry : found.entrySet()) {
                 if (filterEntry.getValue().includes(entry.getKey()) ||
@@ -392,14 +416,14 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         return Collections.unmodifiableMap(selected);
     }
 
-    public String getPackageIdFilters(AbstractBuild<?, ?> build, TaskListener listener) throws Exception {
-        return TokenMacro.expandAll(build, listener, getPackageIdFilters());
+    public String getPackageIdFilters(Run<?, ?> build, FilePath workspace, TaskListener listener) throws Exception {
+        return TokenMacro.expandAll(build, workspace, listener, getPackageIdFilters());
     }
 
-    private Map<String, PathOrPackIdFilter> listPackageFilters(AbstractBuild<?, ?> build, TaskListener listener) {
+    private Map<String, PathOrPackIdFilter> listPackageFilters(Run<?, ?> build, FilePath workspace, TaskListener listener) {
         Map<String, PathOrPackIdFilter> filters = new LinkedHashMap<String, PathOrPackIdFilter>();
         try {
-            for (String filter : splitByNewline(getPackageIdFilters(build, listener))) {
+            for (String filter : splitByNewline(getPackageIdFilters(build, workspace, listener))) {
                 if (filter.trim().length() > 0) {
                     filters.put(filter, PathOrPackIdFilter.parse(filter));
                 }
@@ -410,9 +434,9 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         return Collections.unmodifiableMap(filters);
     }
 
-    private List<String> listBaseUrls(AbstractBuild<?, ?> build, TaskListener listener) {
+    private List<String> listBaseUrls(Run<?, ?> build, FilePath workspace, TaskListener listener) {
         try {
-            return splitByNewline(TokenMacro.expandAll(build, listener, getBaseUrls()));
+            return splitByNewline(TokenMacro.expandAll(build, workspace, listener, getBaseUrls()));
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getBaseUrls());
         }
@@ -420,9 +444,9 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
     }
 
 
-    private String getLocalDirectory(AbstractBuild<?, ?> build, TaskListener listener) {
+    private String getLocalDirectory(Run<?, ?> build, FilePath workspace, TaskListener listener) {
         try {
-            return TokenMacro.expandAll(build, listener, getLocalDirectory());
+            return TokenMacro.expandAll(build, workspace, listener, getLocalDirectory());
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getLocalDirectory());
         }
@@ -434,8 +458,11 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
         return (DescriptorImpl) super.getDescriptor();
     }
 
+    @Symbol("crxDeploy")
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
+
+        public static final String ACHANDLING_DEFER_VALUE = "_DEFER"; // must be upper case
 
         public DescriptorImpl() {
             load();
@@ -508,9 +535,9 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
 
     static class DebugPackageCallable extends MasterToSlaveFileCallable<Result> {
         final PackId packId;
-        final BuildListener listener;
+        final TaskListener listener;
 
-        DebugPackageCallable(PackId packId, BuildListener listener) {
+        DebugPackageCallable(PackId packId, TaskListener listener) {
             this.packId = packId;
             this.listener = listener;
         }

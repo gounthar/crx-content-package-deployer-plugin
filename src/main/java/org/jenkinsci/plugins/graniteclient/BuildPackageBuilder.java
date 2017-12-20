@@ -35,21 +35,23 @@ import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxMode
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
 import hudson.model.Item;
 import hudson.model.Result;
+import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.WspFilter;
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
 /**
@@ -58,15 +60,20 @@ import org.kohsuke.stapler.QueryParameter;
 public class BuildPackageBuilder extends AbstractBuildStep {
     private String packageId;
     private String baseUrl;
-    private String credentialsId;
-    private long requestTimeout;
-    private long serviceTimeout;
-    private long waitDelay;
-    private String wspFilter;
-    private String localDirectory;
-    private boolean download;
+    private String credentialsId = null;
+    private long requestTimeout = 0L;
+    private long serviceTimeout = 0L;
+    private long waitDelay = 0L;
+    private String wspFilter = null;
+    private String localDirectory = null;
+    private boolean download = false;
 
     @DataBoundConstructor
+    public BuildPackageBuilder(String packageId, String baseUrl) {
+        this.packageId = packageId;
+        this.baseUrl = baseUrl;
+    }
+
     public BuildPackageBuilder(String packageId, String baseUrl, String credentialsId,
                                long requestTimeout, long serviceTimeout, long waitDelay,
                                String wspFilter, String localDirectory, boolean download) {
@@ -81,9 +88,8 @@ public class BuildPackageBuilder extends AbstractBuildStep {
         this.download = download;
     }
 
-    @Override
-    boolean perform(@Nonnull AbstractBuild<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
-                    @Nonnull BuildListener listener) throws InterruptedException, IOException {
+    public void perform(@Nonnull Run<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
+                    @Nonnull TaskListener listener) throws InterruptedException, IOException {
 
         Result result = Result.SUCCESS;
         Result buildResult = build.getResult();
@@ -91,32 +97,34 @@ public class BuildPackageBuilder extends AbstractBuildStep {
             result = buildResult;
         }
 
-        String packIdString = getPackageId(build, listener);
+        String packIdString = getPackageId(build, workspace, listener);
         PackId packId = PackId.parsePid(packIdString);
         if (packId == null) {
             listener.fatalError("Failed to parse Package ID: %s%n", packIdString);
-            return false;
+            build.setResult(result.combine(Result.FAILURE));
+            return;
         }
 
-        String wspFilterString = getWspFilter(build, listener);
-        WspFilter filter = WspFilter.parseSimpleSpec(wspFilterString);
+        String wspFilterString = getWspFilter(build, workspace, listener);
+        WspFilter filter = StringUtils.isBlank(wspFilterString)
+                ? null : WspFilter.parseSimpleSpec(wspFilterString);
 
         GraniteClientConfig clientConfig = new GraniteClientConfig(GraniteAHCFactory.getGlobalConfig(),
-                getBaseUrl(build, listener), credentialsId, requestTimeout, serviceTimeout, waitDelay);
+                getBaseUrl(build, workspace, listener), credentialsId, requestTimeout, serviceTimeout, waitDelay);
 
         clientConfig.resolveCredentials();
 
         BuildPackageCallable callable =
                 new BuildPackageCallable(clientConfig, listener, packId, filter, download);
 
-        final String fLocalDirectory = getLocalDirectory(build, listener);
+        final String fLocalDirectory = getLocalDirectory(build, workspace, listener);
 
         Result actResult = workspace.child(fLocalDirectory).act(callable);
         if (actResult != null) {
             result = result.combine(actResult);
         }
 
-        return result.isBetterOrEqualTo(Result.UNSTABLE);
+        build.setResult(result);
     }
 
     public String getPackageId() {
@@ -127,18 +135,18 @@ public class BuildPackageBuilder extends AbstractBuildStep {
         }
     }
 
-    public String getPackageId(AbstractBuild<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
+    public String getPackageId(Run<?, ?> build, FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
         try {
-            return TokenMacro.expandAll(build, listener, getPackageId());
+            return TokenMacro.expandAll(build, workspace, listener, getPackageId());
         } catch (MacroEvaluationException e) {
             listener.error("Failed to expand macros in Package ID: %s", getPackageId());
             return getPackageId();
         }
     }
 
-    private String getBaseUrl(AbstractBuild<?, ?> build, TaskListener listener) {
+    private String getBaseUrl(Run<?, ?> build, FilePath workspace, TaskListener listener) {
         try {
-            return TokenMacro.expandAll(build, listener, getBaseUrl());
+            return TokenMacro.expandAll(build, workspace, listener, getBaseUrl());
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getBaseUrl());
         }
@@ -146,25 +154,30 @@ public class BuildPackageBuilder extends AbstractBuildStep {
     }
 
     public String getCredentialsId() {
-        return credentialsId;
+        return credentialsId == null ? "" : credentialsId;
     }
 
+    @DataBoundSetter
     public void setCredentialsId(String credentialsId) {
-        this.credentialsId = credentialsId;
+        if (StringUtils.isBlank(credentialsId)) {
+            this.credentialsId = null;
+        } else {
+            this.credentialsId = credentialsId;
+        }
     }
 
-    private String getLocalDirectory(AbstractBuild<?, ?> build, TaskListener listener) {
+    private String getLocalDirectory(Run<?, ?> build, FilePath workspace, TaskListener listener) {
         try {
-            return TokenMacro.expandAll(build, listener, getLocalDirectory());
+            return TokenMacro.expandAll(build, workspace, listener, getLocalDirectory());
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getLocalDirectory());
         }
         return getLocalDirectory();
     }
 
-    private String getWspFilter(AbstractBuild<?, ?> build, TaskListener listener) {
+    private String getWspFilter(Run<?, ?> build, FilePath workspace, TaskListener listener) {
         try {
-            return TokenMacro.expandAll(build, listener, getWspFilter());
+            return TokenMacro.expandAll(build, workspace, listener, getWspFilter());
         } catch (Exception e) {
             listener.error("failed to expand tokens in: %s%n", getWspFilter());
         }
@@ -191,12 +204,13 @@ public class BuildPackageBuilder extends AbstractBuildStep {
         return waitDelay;
     }
 
+    @DataBoundSetter
     public void setWaitDelay(long waitDelay) {
         this.waitDelay = waitDelay;
     }
 
     public String getWspFilter() {
-        return wspFilter;
+        return wspFilter == null ? "" : wspFilter;
     }
 
     public boolean isDownload() {
@@ -204,41 +218,49 @@ public class BuildPackageBuilder extends AbstractBuildStep {
     }
 
     public String getLocalDirectory() {
-        if (localDirectory == null || localDirectory.trim().isEmpty()) {
+        if (StringUtils.isBlank(localDirectory)) {
             return ".";
         } else {
             return localDirectory;
         }
     }
 
+    @DataBoundSetter
     public void setLocalDirectory(String localDirectory) {
         this.localDirectory = localDirectory;
     }
 
+    @DataBoundSetter
     public void setPackageId(String packageId) {
         this.packageId = packageId;
     }
 
+    @DataBoundSetter
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
     }
 
+    @DataBoundSetter
     public void setWspFilter(String wspFilter) {
         this.wspFilter = wspFilter;
     }
 
+    @DataBoundSetter
     public void setDownload(boolean download) {
         this.download = download;
     }
 
+    @DataBoundSetter
     public void setRequestTimeout(long requestTimeout) {
         this.requestTimeout = requestTimeout;
     }
 
+    @DataBoundSetter
     public void setServiceTimeout(long serviceTimeout) {
         this.serviceTimeout = serviceTimeout;
     }
 
+    @Symbol("crxBuild")
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
 
