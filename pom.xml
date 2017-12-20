@@ -196,7 +196,7 @@
         <dependency>
             <groupId>net.adamcin.commons</groupId>
             <artifactId>net.adamcin.commons.testing</artifactId>
-            <version>[0.9.0,1.0.0)</version>
+            <version>0.9.0</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
