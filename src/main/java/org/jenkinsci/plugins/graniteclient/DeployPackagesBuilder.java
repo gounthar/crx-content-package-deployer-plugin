@@ -27,23 +27,6 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
-import static org.jenkinsci.plugins.graniteclient.BaseUrlUtil.splitByNewline;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.servlet.ServletException;
-
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import hudson.Extension;
 import hudson.FilePath;
@@ -70,6 +53,24 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.interceptor.RequirePOST;
+
+import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.jenkinsci.plugins.graniteclient.BaseUrlUtil.splitByNewline;
 
 /**
  * Implementation of the "Deploy Content Packages to CRX" build step
@@ -354,17 +355,17 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
 
             Collections.sort(
                     listed, Collections.reverseOrder(
-                    new Comparator<FilePath>() {
-                        public int compare(FilePath left, FilePath right) {
-                            try {
-                                return Long.compare(left.lastModified(), right.lastModified());
-                            } catch (Exception e) {
-                                listener.error("Failed to compare a couple files: %s", e.getMessage());
+                            new Comparator<FilePath>() {
+                                public int compare(FilePath left, FilePath right) {
+                                    try {
+                                        return Long.compare(left.lastModified(), right.lastModified());
+                                    } catch (Exception e) {
+                                        listener.error("Failed to compare a couple files: %s", e.getMessage());
+                                    }
+                                    return 0;
+                                }
                             }
-                            return 0;
-                        }
-                    }
-            ));
+                    ));
 
             for (FilePath path : listed) {
                 PackId packId = path.act(new IdentifyPackageCallable());
@@ -485,9 +486,11 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
             return true;
         }
 
+        @RequirePOST
         public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                                           @QueryParameter("baseUrls") String baseUrls,
                                                                           @QueryParameter("value") String value) {
+            context.checkPermission(Item.CONFIGURE);
             List<String> _baseUrls = splitByNewline(baseUrls);
 
             if (!_baseUrls.isEmpty()) {
@@ -497,12 +500,14 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
             }
         }
 
-        public FormValidation doTestConnection(@QueryParameter("baseUrls") final String baseUrls,
+        @RequirePOST
+        public FormValidation doTestConnection(@AncestorInPath Item context,
+                                               @QueryParameter("baseUrls") final String baseUrls,
                                                @QueryParameter("credentialsId") final String credentialsId,
                                                @QueryParameter("requestTimeout") final long requestTimeout,
                                                @QueryParameter("serviceTimeout") final long serviceTimeout)
                 throws IOException, ServletException {
-
+            context.checkPermission(Item.CONFIGURE);
             return BaseUrlUtil.testManyConnections(baseUrls, credentialsId, requestTimeout, serviceTimeout);
         }
 
@@ -515,7 +520,7 @@ public class DeployPackagesBuilder extends AbstractBuildStep {
                     ACHandling.MERGE,
                     ACHandling.OVERWRITE,
                     ACHandling.CLEAR)
-                    ) {
+            ) {
                 model.add(mode.getLabel(), mode.name());
             }
             return model;

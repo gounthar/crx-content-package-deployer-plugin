@@ -27,10 +27,6 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
-import java.io.IOException;
-import javax.annotation.Nonnull;
-import javax.servlet.ServletException;
-
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import hudson.Extension;
 import hudson.FilePath;
@@ -53,6 +49,11 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.interceptor.RequirePOST;
+
+import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
+import java.io.IOException;
 
 /**
  * Implementation of the "Build a Content Package on CRX" build step
@@ -89,7 +90,7 @@ public class BuildPackageBuilder extends AbstractBuildStep {
     }
 
     public void perform(@Nonnull Run<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
-                    @Nonnull TaskListener listener) throws InterruptedException, IOException {
+                        @Nonnull TaskListener listener) throws InterruptedException, IOException {
 
         Result result = Result.SUCCESS;
         Result buildResult = build.getResult();
@@ -269,18 +270,22 @@ public class BuildPackageBuilder extends AbstractBuildStep {
             return true;
         }
 
+        @RequirePOST
         public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                                           @QueryParameter("baseUrl") String baseUrl,
                                                                           @QueryParameter("value") String value) {
+            context.checkPermission(Item.CONFIGURE);
             return GraniteCredentialsListBoxModel.fillItems(value, context, baseUrl);
         }
 
-        public FormValidation doTestConnection(@QueryParameter("baseUrl") final String baseUrl,
+        @RequirePOST
+        public FormValidation doTestConnection(@AncestorInPath Item context,
+                                               @QueryParameter("baseUrl") final String baseUrl,
                                                @QueryParameter("credentialsId") final String credentialsId,
                                                @QueryParameter("requestTimeout") final long requestTimeout,
                                                @QueryParameter("serviceTimeout") final long serviceTimeout)
                 throws IOException, ServletException {
-
+            context.checkPermission(Item.CONFIGURE);
             return BaseUrlUtil.testOneConnection(baseUrl, credentialsId, requestTimeout, serviceTimeout);
         }
 

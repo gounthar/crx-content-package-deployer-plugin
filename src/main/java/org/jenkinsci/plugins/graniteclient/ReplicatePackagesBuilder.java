@@ -27,15 +27,6 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
-import static org.jenkinsci.plugins.graniteclient.BaseUrlUtil.splitByNewline;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import javax.annotation.Nonnull;
-import javax.servlet.ServletException;
-
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import hudson.Extension;
 import hudson.FilePath;
@@ -57,6 +48,16 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.interceptor.RequirePOST;
+
+import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import static org.jenkinsci.plugins.graniteclient.BaseUrlUtil.splitByNewline;
 
 /**
  * Implementation of the "Replicate Content Packages from CRX" build step
@@ -240,9 +241,11 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
             return true;
         }
 
+        @RequirePOST
         public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                                           @QueryParameter("baseUrls") String baseUrls,
                                                                           @QueryParameter("value") String value) {
+            context.checkPermission(Item.CONFIGURE);
             List<String> _baseUrls = splitByNewline(baseUrls);
 
             if (!_baseUrls.isEmpty()) {
@@ -252,12 +255,14 @@ public class ReplicatePackagesBuilder extends AbstractBuildStep {
             }
         }
 
-        public FormValidation doTestConnection(@QueryParameter("baseUrls") final String baseUrls,
+        @RequirePOST
+        public FormValidation doTestConnection(@AncestorInPath Item context,
+                                               @QueryParameter("baseUrls") final String baseUrls,
                                                @QueryParameter("credentialsId") final String credentialsId,
                                                @QueryParameter("requestTimeout") final long requestTimeout,
                                                @QueryParameter("serviceTimeout") final long serviceTimeout)
                 throws IOException, ServletException {
-
+            context.checkPermission(Item.CONFIGURE);
             return BaseUrlUtil.testManyConnections(baseUrls, credentialsId, requestTimeout, serviceTimeout);
         }
 

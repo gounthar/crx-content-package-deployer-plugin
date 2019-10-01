@@ -55,6 +55,7 @@ import net.sf.json.JSONObject;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * Global extension and configurable factory for {@link AsyncHttpClient} instances
@@ -144,8 +145,10 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory>
         return "CRX Content Package Deployer - HTTP Client";
     }
 
+    @RequirePOST
     public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                                       @QueryParameter("value") String value) {
+        context.checkPermission(Item.CONFIGURE);
         return GraniteCredentialsListBoxModel.fillItems(value, context);
     }
 

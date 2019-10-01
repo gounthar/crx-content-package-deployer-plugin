@@ -27,13 +27,6 @@
 
 package org.jenkinsci.plugins.graniteclient;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import javax.servlet.ServletException;
-
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import hudson.Extension;
 import hudson.model.Item;
@@ -52,6 +45,14 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.interceptor.RequirePOST;
+
+import javax.servlet.ServletException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Implementation of the "CRX Content Package Choice Parameter" type
@@ -68,18 +69,22 @@ public class PackageChoiceParameterDefinition extends ParameterDefinition {
             return "CRX Content Package Choice Parameter";
         }
 
-        public FormValidation doTestConnection(@QueryParameter("baseUrl") final String baseUrl,
+        @RequirePOST
+        public FormValidation doTestConnection(@AncestorInPath Item context,
+                                               @QueryParameter("baseUrl") final String baseUrl,
                                                @QueryParameter("credentialsId") final String credentialsId,
                                                @QueryParameter("requestTimeout") final long requestTimeout,
                                                @QueryParameter("serviceTimeout") final long serviceTimeout)
                 throws IOException, ServletException {
-
+            context.checkPermission(Item.CONFIGURE);
             return BaseUrlUtil.testOneConnection(baseUrl, credentialsId, requestTimeout, serviceTimeout);
         }
 
+        @RequirePOST
         public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
                                                                           @QueryParameter("baseUrl") String baseUrl,
                                                                           @QueryParameter("value") String value) {
+            context.checkPermission(Item.CONFIGURE);
             return GraniteCredentialsListBoxModel.fillItems(value, context, baseUrl);
         }
 

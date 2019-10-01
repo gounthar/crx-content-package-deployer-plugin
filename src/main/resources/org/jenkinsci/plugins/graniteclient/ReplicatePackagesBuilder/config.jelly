@@ -43,7 +43,7 @@
     <f:advanced title="Connection Options">
 
         <f:entry title="Credentials" field="credentialsId">
-            <creds:select />
+            <creds:select checkMethod="post"/>
         </f:entry>
 
         <f:validateButton
