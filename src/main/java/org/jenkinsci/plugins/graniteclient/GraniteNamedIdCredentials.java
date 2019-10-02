@@ -289,7 +289,8 @@ abstract class GraniteNamedIdCredentials implements IdCredentials {
         }
 
         public boolean matches(@NonNull Credentials item) {
-            if (credentialsId != null && !credentialsId.isEmpty()) {
+            if ((item.getScope() == CredentialsScope.GLOBAL)
+                    && credentialsId != null && !credentialsId.isEmpty()) {
                 if (item instanceof SSHUserPrivateKey) {
                     return credentialsId.equals(((SSHUserPrivateKey) item).getId());
                 } else if (item instanceof IdCredentials) {

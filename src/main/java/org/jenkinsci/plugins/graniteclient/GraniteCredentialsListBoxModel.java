@@ -34,6 +34,7 @@ import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
@@ -41,15 +42,18 @@ import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Item;
+import hudson.model.Queue;
+import hudson.model.queue.Tasks;
 import hudson.security.ACL;
 import hudson.security.AccessControlled;
+import jenkins.model.Jenkins;
 
 /**
  *
  */
 public class GraniteCredentialsListBoxModel extends AbstractIdCredentialsListBoxModel<GraniteCredentialsListBoxModel, IdCredentials> {
 
-    private static final long serialVersionUID = 6621529150670191090L;
+    private static final long serialVersionUID = 6621529150670191091L;
 
     @NonNull
     @Override
@@ -77,27 +81,44 @@ public class GraniteCredentialsListBoxModel extends AbstractIdCredentialsListBox
         AbstractIdCredentialsListBoxModel<GraniteCredentialsListBoxModel, IdCredentials> model =
                 new GraniteCredentialsListBoxModel().withEmptySelection();
 
-        if (context == null || !context.hasPermission(Item.CONFIGURE)) {
+        // when a context is provided (by a job config) but lacks configure permissions
+        // return the existing value
+        if (context != null && !context.hasPermission(Item.CONFIGURE)) {
+            Credentials _credentials = GraniteNamedIdCredentials.getCredentialsById(currentValue);
+            return model.with(GraniteNamedIdCredentials.maybeWrap(_credentials));
+        }
+
+        // when a context is not provided (by global config) but lacks admin permissions
+        // return the existing value
+        if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER)) {
             Credentials _credentials = GraniteNamedIdCredentials.getCredentialsById(currentValue);
             return model.with(GraniteNamedIdCredentials.maybeWrap(_credentials));
         }
 
         List<SSHUserPrivateKey> keys = CredentialsProvider.lookupCredentials(SSHUserPrivateKey.class,
-                context, ACL.SYSTEM, reqs);
+                context,
+                context instanceof Queue.Task ? Tasks.getAuthenticationOf((Queue.Task) context) : ACL.SYSTEM,
+                reqs);
 
         if (!keys.isEmpty()) {
             for (SSHUserPrivateKey key : keys) {
-                model = model.with(GraniteNamedIdCredentials.wrap(key));
+                if (key.getScope() == CredentialsScope.GLOBAL) {
+                    model = model.with(GraniteNamedIdCredentials.wrap(key));
+                }
             }
         }
 
         List<StandardUsernamePasswordCredentials> basicAuthCredsList =
                 CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class,
-                        context, ACL.SYSTEM, reqs);
+                        context,
+                        context instanceof Queue.Task ? Tasks.getAuthenticationOf((Queue.Task) context) : ACL.SYSTEM,
+                        reqs);
 
         if (!basicAuthCredsList.isEmpty()) {
             for (StandardUsernamePasswordCredentials creds : basicAuthCredsList) {
-                model = model.with(GraniteNamedIdCredentials.wrap(creds));
+                if (creds.getScope() == CredentialsScope.GLOBAL) {
+                    model = model.with(GraniteNamedIdCredentials.wrap(creds));
+                }
             }
         }
 

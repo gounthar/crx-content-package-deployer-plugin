@@ -67,7 +67,7 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory>
     private static final Logger LOGGER = Logger.getLogger(GraniteAHCFactory.class.getName());
     private static final TaskListener DEFAULT_LISTENER = new LogTaskListener(LOGGER, Level.INFO);
 
-    private static final long serialVersionUID = 1329103722879551701L;
+    private static final long serialVersionUID = 1329103722879551702L;
     private static final int DEFAULT_TIMEOUT = GraniteClientGlobalConfig.DEFAULT_TIMEOUT;
 
     private String credentialsId;
@@ -146,10 +146,9 @@ public final class GraniteAHCFactory extends Descriptor<GraniteAHCFactory>
     }
 
     @RequirePOST
-    public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context,
-                                                                      @QueryParameter("value") String value) {
-        context.checkPermission(Item.CONFIGURE);
-        return GraniteCredentialsListBoxModel.fillItems(value, context);
+    public AbstractIdCredentialsListBoxModel doFillCredentialsIdItems(@QueryParameter("value") String value) {
+        Jenkins.getActiveInstance().checkPermission(Jenkins.ADMINISTER);
+        return GraniteCredentialsListBoxModel.fillItems(value, null);
     }
 
     public Credentials getDefaultCredentials() {
