@@ -30,7 +30,9 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.2</version><!-- which version of Jenkins is this plugin built against? -->
+        <version>4.51</version>
+        <!-- which version of Jenkins is this plugin built against? -->
+        <relativePath/>
     </parent>
 
     <artifactId>crx-content-package-deployer</artifactId>
@@ -97,8 +99,7 @@
     <properties>
         <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jenkins.version>1.642.3</jenkins.version>
-        <java.level>7</java.level>
+        <jenkins.version>2.346.3</jenkins.version>
         <!--
           explicitly specifying the latest version here because one we get from the parent POM
           tends to lag behind a bit
